@@ -1,33 +1,265 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Chatbot Test</title>
+  <title>Virtual English Tutor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #F8D763;
+      margin: 0;
+      padding: 20px;
+      font-size: clamp(16px, 2.8vw, 20px);
+    }
+
+    .chatbot-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .chatbot-container img {
+      width: 100%;
+      max-width: 250px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .chatbot-container h3 {
+      font-size: clamp(18px, 3.4vw, 24px);
+      margin: 0 0 10px 0;
+    }
+
+    button {
+      font-size: clamp(16px, 3vw, 20px);
+      padding: 10px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    p {
+      margin: 6px 0;
+    }
+
+    #userText, #botText {
+      display: inline-block;
+      background: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      max-width: 90%;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>Prueba de audio dinámico</h2>
+<div class="chatbot-container">
+  <img id="avatar" src="avatar-static.png" alt="Avatar">
 
-<button onclick="playSound()">Reproducir sonido</button>
-<br><br>
-<img id="avatar" src="avatarprofemujer2.jpg" width="150">
+  <div>
+    <h3>Virtual English Tutor</h3>
+
+    <button id="startBtn">🎤 Speak</button>
+
+    <p><strong>You:</strong> <span id="userText"></span></p>
+    <p><strong>Teacher:</strong> <span id="botText"></span></p>
+
+    <p id="timeRow" style="display:none;">
+      <strong>Time remaining:</strong> <span id="timeSpent"></span>
+    </p>
+  </div>
+</div>
 
 <script>
-  const avatar = document.getElementById("avatar");
+/* ----------------------------------------------------------
+   CONFIG
+----------------------------------------------------------- */
+const API_BASE = "https://chatbot-xzhi.onrender.com";
 
-  function playSound() {
-    const audio = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+const avatar = document.getElementById("avatar");
+const userText = document.getElementById("userText");
+const botText = document.getElementById("botText");
+const timeSpent = document.getElementById("timeSpent");
+const timeRow = document.getElementById("timeRow");
 
-    audio.onplay = () => {
-      avatar.src = "teachergif2.gif";
-    };
+/* ----------------------------------------------------------
+   HISTORIAL LOCAL
+----------------------------------------------------------- */
+function getTodayKey() {
+  return "history_" + new Date().toISOString().split("T")[0];
+}
 
-    audio.onended = () => {
-      avatar.src = "avatar-static.png";
-    };
+function saveHistory(userMsg, botMsg) {
+  const key = getTodayKey();
+  let h = JSON.parse(localStorage.getItem(key) || "[]");
 
-    audio.play().catch(err => console.log("Error:", err));
+  h.push({ user: userMsg, bot: botMsg });
+  if (h.length > 5) h = h.slice(-5);
+
+  localStorage.setItem(key, JSON.stringify(h));
+}
+
+function loadLastHistory() {
+  const key = getTodayKey();
+  const h = JSON.parse(localStorage.getItem(key) || "[]");
+  if (h.length > 0) {
+    const last = h[h.length - 1];
+    userText.textContent = last.user;
+    botText.textContent = last.bot;
   }
+}
+
+/* ----------------------------------------------------------
+   FORMATEAR TIEMPO
+----------------------------------------------------------- */
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+/* ----------------------------------------------------------
+   GRABACIÓN DE AUDIO + STT
+----------------------------------------------------------- */
+let mediaRecorder = null;
+let audioChunks = [];
+let mediaStream = null;
+
+async function startRecording() {
+  if (!mediaStream) {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+
+  mediaRecorder = new MediaRecorder(mediaStream);
+  audioChunks = [];
+
+  mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+  mediaRecorder.onstop = async () => {
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "audio.webm");
+
+    const sttRes = await fetch(API_BASE + "/stt", {
+      method: "POST",
+      body: formData
+    });
+
+    const sttData = await sttRes.json();
+    const transcript = sttData.text || "";
+
+    userText.textContent = transcript;
+
+    sendToChatbot(transcript);
+  };
+
+  mediaRecorder.start();
+  userText.textContent = "(Listening...)";
+
+  setTimeout(() => mediaRecorder.stop(), 3000);
+}
+
+/* ----------------------------------------------------------
+   ENVIAR TEXTO AL CHATBOT
+----------------------------------------------------------- */
+async function sendToChatbot(message) {
+  const key = getTodayKey();
+  const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
+  const last3 = fullHistory.slice(-3);
+
+  const res = await fetch(API_BASE + "/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message,
+      history: last3,
+      firstname: "Student",
+      lastname: "",
+      userId: "browser_user",
+      email: null
+    })
+  });
+
+  const data = await res.json();
+
+  const reply = data.reply || "Error";
+  botText.textContent = reply;
+
+  saveHistory(message, reply);
+
+  const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
+  timeSpent.textContent = formatTime(remaining);
+  timeRow.style.display = "block";
+
+  playAudio(reply, data.audio);
+}
+
+/* ----------------------------------------------------------
+   REPRODUCIR AUDIO TTS + ANIMAR AVATAR
+----------------------------------------------------------- */
+function playAudio(text, base64Audio) {
+  if (!base64Audio) return;
+
+  const audio = new Audio("data:audio/mp3;base64," + base64Audio);
+
+  audio.onplay = () => {
+    avatar.src = "avatar-talking.gif";
+  };
+
+  audio.onended = () => {
+    avatar.src = "avatar-static.png";
+
+    fetch(API_BASE + "/ttsTime", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: "browser_user",
+        seconds: audio.duration
+      })
+    })
+    .then(r => r.json())
+    .then(d => {
+      const remaining = Math.max(300 - d.total, 0);
+      timeSpent.textContent = formatTime(remaining);
+    });
+  };
+
+  audio.play();
+}
+
+/* ----------------------------------------------------------
+   BOTÓN HABLAR
+----------------------------------------------------------- */
+document.getElementById("startBtn").onclick = startRecording;
+
+/* ----------------------------------------------------------
+   SALUDO INICIAL
+----------------------------------------------------------- */
+window.addEventListener("load", () => {
+  const todayKey = getTodayKey();
+  const last = JSON.parse(localStorage.getItem(todayKey) || "[]");
+
+  if (last.length > 0) {
+    loadLastHistory();
+  } else {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric"
+    });
+
+    const greeting = `Hello! I'm your virtual English tutor. Welcome to today's practice, ${dateStr}.`;
+    botText.textContent = greeting;
+
+    saveHistory("", greeting);
+  }
+});
 </script>
 
 </body>
