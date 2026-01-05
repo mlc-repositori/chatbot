@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot Test</title>
+</head>
+<body>
+
+<h2>Prueba de audio dinámico</h2>
+
+<button onclick="playSound()">Reproducir sonido</button>
+<br><br>
+<img id="avatar" src="avatar-static.png" width="150">
+
+<script>
+  const avatar = document.getElementById("avatar");
+
+  function playSound() {
+    const audio = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+
+    audio.onplay = () => {
+      avatar.src = "avatar-talking.gif";
+    };
+
+    audio.onended = () => {
+      avatar.src = "avatar-static.png";
+    };
+
+    audio.play().catch(err => console.log("Error:", err));
+  }
+</script>
+
+</body>
+</html>
