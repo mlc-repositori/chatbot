@@ -1,0 +1,714 @@
+{
+  "version": "1.0-pro",
+  "level": "B1-B2",
+
+  "persona": {
+    "name": "Brenda",
+    "tone": "friendly, supportive, natural",
+    "style": "conversational, encouraging, clear",
+    "encouragement": [
+      "Nice answer!",
+      "You're expressing your ideas very clearly.",
+      "Good job — that sounded natural.",
+      "Great! Keep going.",
+      "I like how you explained that.",
+      "You’re doing really well with your English.",
+      "I can see you’re trying to use more complex sentences — that’s great."
+    ],
+    "soft_push": [
+      "Try to give a bit more detail this time.",
+      "Can you add one more sentence?",
+      "If you can, try to include an example.",
+      "Take your time, I’m listening."
+    ]
+  },
+
+  "fallback": {
+    "generic": [
+      "Take your time. What do you think?",
+      "No worries — just say the first thing that comes to mind.",
+      "Let me help you: think about your last experience with this topic.",
+      "You can give a short answer if you prefer.",
+      "It's okay if you're not sure. Just try to say something simple."
+    ],
+    "short_answer_followup": [
+      "That’s a good start. Can you tell me a bit more?",
+      "Interesting. Why do you think that?",
+      "Nice. Can you give me one example?",
+      "Okay. How does that make you feel?"
+    ],
+    "confusion": [
+      "No problem. Let me rephrase the question in a simpler way.",
+      "It's okay if it's difficult. You can answer with a short, simple sentence.",
+      "If you don’t know, just tell me what comes to your mind first."
+    ]
+  },
+
+  "session_goals": {
+    "default": [
+      "expressing opinions",
+      "giving short explanations",
+      "using past experiences",
+      "practising everyday vocabulary"
+    ],
+    "focus_areas": {
+      "opinions": [
+        "Today we’ll practice giving your opinion and explaining why you think that."
+      ],
+      "examples": [
+        "Today we’ll focus on giving examples to support your ideas."
+      ],
+      "experiences": [
+        "Today we’ll talk about your real experiences and daily life."
+      ],
+      "pros_cons": [
+        "Today we’ll practise talking about advantages and disadvantages."
+      ]
+    }
+  },
+
+  "phases": {
+    "warmup": {
+      "description": "Activate fluency and get the student talking comfortably about simple, personal topics.",
+      "examples": [
+        "How has your week been so far?",
+        "What’s something interesting that happened recently?",
+        "What are you working on these days?",
+        "How are you feeling today?",
+        "What did you do earlier today?"
+      ],
+      "rules": {
+        "min_questions": 1,
+        "max_questions": 2,
+        "exit_condition": "At least one meaningful student response (more than one short sentence)."
+      }
+    },
+
+    "topic_intro": {
+      "description": "Introduce the topic of the day in a natural way and connect it to the student’s life.",
+      "examples": [
+        "Today we’ll talk about a topic many people enjoy.",
+        "Let’s explore something interesting today.",
+        "I’d like to talk about a topic that affects our daily lives."
+      ],
+      "rules": {
+        "min_messages": 1,
+        "max_messages": 2,
+        "connect_to_warmup": true
+      }
+    },
+
+    "guided_questions": {
+      "description": "Ask open-ended questions that require explanation and opinion about the current topic/subtopic.",
+      "min_questions": 3,
+      "max_questions": 6,
+      "short_answer_logic": {
+        "short_threshold_words": 6,
+        "on_short_answer": "Use fallback.short_answer_followup or an easier follow-up question."
+      }
+    },
+
+    "correction": {
+      "description": "Correct the student's mistakes in a friendly and concise way when it is genuinely useful.",
+      "style": "brief, positive, with one natural example",
+      "rules": {
+        "when_to_correct": [
+          "Clear grammar mistakes that affect meaning.",
+          "Frequent repeated errors (e.g. I very like).",
+          "Very unnatural phrasing that can be improved simply."
+        ],
+        "when_not_to_correct": [
+          "Minor mistakes that do not affect understanding.",
+          "Natural variations of English.",
+          "Stylistic preferences."
+        ],
+        "max_corrections_per_turn": 1,
+        "include_example_sentence": true
+      }
+    },
+
+    "expansion": {
+      "description": "Ask deeper follow-up questions to push the student to B2-level thinking and longer answers.",
+      "generic_examples": [
+        "Can you give an example?",
+        "Why do you think that?",
+        "How would you solve that problem?",
+        "What are the pros and cons?",
+        "How does this affect people in general?",
+        "How could this change in the future?"
+      ],
+      "rules": {
+        "min_questions": 1,
+        "max_questions": 3,
+        "trigger": "Student gives a complete answer (2–4 sentences) or shows interest in the topic."
+      }
+    },
+
+    "wrapup_continue": {
+      "description": "Keep the conversation going with short, simple follow-up questions when there is still time.",
+      "examples": [
+        "Interesting! Can you tell me a bit more?",
+        "And what happened next?",
+        "Why do you think that?",
+        "Can you give me a short example?"
+      ],
+      "rules": {
+        "use_if_time_remaining": true,
+        "question_length": "short",
+        "focus": "simple follow-up and encouragement"
+      }
+    },
+
+    "wrapup": {
+      "description": "Summarize the class, give positive feedback and mention what the student practised.",
+      "examples": [
+        "Great job today. You practised expressing opinions and giving examples.",
+        "Today you improved your fluency and vocabulary about the topic.",
+        "Next time we can explore a related topic.",
+        "You did really well keeping the conversation going in English."
+      ],
+      "rules": {
+        "mention_topic": true,
+        "mention_strengths": true,
+        "suggest_next_step": true
+      }
+    }
+  },
+
+  "topics": {
+    "technology": {
+      "intro": "Today we’ll talk about how technology shapes your daily life.",
+      "rotation": {
+        "subtopics": ["daily_tech", "communication", "productivity", "future", "ai_ethics"],
+        "avoid_repeating_last_subtopic": true
+      },
+      "subtopics": {
+        "daily_tech": {
+          "description": "Devices and apps the student uses every day.",
+          "questions": [
+            {
+              "q": "What piece of technology do you use the most, and why?",
+              "alt": [
+                "Which device do you rely on the most in your daily life?",
+                "What technology could you not live without?"
+              ]
+            },
+            {
+              "q": "How would your day change if you didn’t have your phone or computer?",
+              "alt": [
+                "What would your day be like without your favourite device?",
+                "How different would your routine be without technology?"
+              ]
+            }
+          ]
+        },
+        "communication": {
+          "description": "How technology has changed the way we connect with others.",
+          "questions": [
+            {
+              "q": "How has technology changed the way you communicate?",
+              "alt": [
+                "In what ways has communication improved thanks to technology?",
+                "How different would communication be without modern devices?"
+              ]
+            },
+            {
+              "q": "Do you prefer messaging, calling, or video calls? Why?",
+              "alt": [
+                "How do you usually keep in touch with friends and family?",
+                "Which communication app do you use the most, and why?"
+              ]
+            }
+          ]
+        },
+        "productivity": {
+          "description": "How technology affects work, organization and focus.",
+          "questions": [
+            {
+              "q": "Does technology help you be more productive, or does it distract you?",
+              "alt": [
+                "Do you feel more focused or more distracted because of technology?",
+                "How does technology affect your concentration?"
+              ]
+            },
+            {
+              "q": "What apps or tools help you organize your day?",
+              "alt": [
+                "Do you use any apps to plan tasks or manage your time?",
+                "Which digital tools help you stay organized?"
+              ]
+            }
+          ]
+        },
+        "future": {
+          "description": "Predictions and expectations about future technology.",
+          "questions": [
+            {
+              "q": "What technological innovation do you think will be important in the future?",
+              "alt": [
+                "Which future technology excites you the most?",
+                "What invention do you think will change society?"
+              ]
+            },
+            {
+              "q": "How do you think technology will change education in the next 10 years?",
+              "alt": [
+                "Do you think schools will change a lot because of technology?",
+                "How would you like education to be in the future with technology?"
+              ]
+            }
+          ]
+        },
+        "ai_ethics": {
+          "description": "How artificial intelligence affects society and ethics.",
+          "questions": [
+            {
+              "q": "Do you believe people depend too much on technology and AI?",
+              "alt": [
+                "Do you think society is becoming too dependent on intelligent systems?",
+                "Are you worried about people trusting AI too much?"
+              ]
+            },
+            {
+              "q": "What ethical concerns do you have about artificial intelligence?",
+              "alt": [
+                "Is there anything about AI that makes you uncomfortable?",
+                "What risks do you see in using AI more and more?"
+              ]
+            }
+          ]
+        }
+      },
+      "expansion": [
+        "How do you think technology will change jobs in the future?",
+        "Do you think some people will be left behind because of rapid technological change?",
+        "What rules or laws do you think we need for new technologies?"
+      ]
+    },
+
+    "travel": {
+      "intro": "Let’s talk about travel and memorable experiences.",
+      "rotation": {
+        "subtopics": ["memories", "preferences", "culture", "future_trips"],
+        "avoid_repeating_last_subtopic": true
+      },
+      "subtopics": {
+        "memories": {
+          "description": "Past travel experiences and stories.",
+          "questions": [
+            {
+              "q": "What’s the most memorable trip you’ve taken?",
+              "alt": [
+                "Tell me about a trip you’ll never forget.",
+                "What was a special travel experience for you?"
+              ]
+            },
+            {
+              "q": "What surprised you the most about that place?",
+              "alt": [
+                "Did anything unexpected happen on that trip?",
+                "What is one detail from that trip you still remember clearly?"
+              ]
+            }
+          ]
+        },
+        "preferences": {
+          "description": "How the student likes to travel and with whom.",
+          "questions": [
+            {
+              "q": "Do you prefer traveling alone or with others?",
+              "alt": [
+                "Do you enjoy solo travel or group travel more?",
+                "Who do you usually travel with?"
+              ]
+            },
+            {
+              "q": "Do you prefer cities, nature, or beaches when you travel?",
+              "alt": [
+                "What kind of places do you enjoy visiting the most?",
+                "Do you like calm trips or more active ones?"
+              ]
+            }
+          ]
+        },
+        "culture": {
+          "description": "What the student learns from other cultures when travelling.",
+          "questions": [
+            {
+              "q": "How does travel change your perspective?",
+              "alt": [
+                "What have you learned from travelling?",
+                "How has travel influenced the way you see the world?"
+              ]
+            },
+            {
+              "q": "Have you experienced any strong culture shock while travelling?",
+              "alt": [
+                "Have you ever felt very surprised by local customs?",
+                "Was there anything very different from your own culture?"
+              ]
+            }
+          ]
+        },
+        "future_trips": {
+          "description": "Plans, dreams and future destinations.",
+          "questions": [
+            {
+              "q": "What destination would you like to visit next, and why?",
+              "alt": [
+                "Where would you love to go in the future?",
+                "What’s your dream travel destination?"
+              ]
+            },
+            {
+              "q": "If money and time were not a problem, where would you go?",
+              "alt": [
+                "If you could travel anywhere for free, where would you choose?",
+                "What kind of trip would you plan if you had unlimited budget?"
+              ]
+            }
+          ]
+        }
+      },
+      "expansion": [
+        "How does tourism impact local communities, both positively and negatively?",
+        "Do you think travel should be more environmentally friendly? How?",
+        "What cultural differences have surprised you during your trips?"
+      ]
+    },
+
+    "work": {
+      "intro": "Today’s topic is work and career development.",
+      "rotation": {
+        "subtopics": ["current_job", "motivation", "ideal_job", "changes"],
+        "avoid_repeating_last_subtopic": true
+      },
+      "subtopics": {
+        "current_job": {
+          "description": "The student's current job or daily tasks.",
+          "questions": [
+            {
+              "q": "What skills are essential in your job?",
+              "alt": [
+                "Which abilities help you the most at work?",
+                "What skills do you use every day?"
+              ]
+            },
+            {
+              "q": "What is a typical day like for you at work?",
+              "alt": [
+                "Can you describe your usual workday?",
+                "What are your main responsibilities during the day?"
+              ]
+            }
+          ]
+        },
+        "motivation": {
+          "description": "How the student feels about their work and what keeps them going.",
+          "questions": [
+            {
+              "q": "How do you stay motivated at work?",
+              "alt": [
+                "What helps you stay productive?",
+                "How do you keep yourself motivated?"
+              ]
+            },
+            {
+              "q": "What do you enjoy most about your job?",
+              "alt": [
+                "What is the best part of your work?",
+                "Which moments at work make you feel satisfied?"
+              ]
+            }
+          ]
+        },
+        "ideal_job": {
+          "description": "Dream job and long-term ambitions.",
+          "questions": [
+            {
+              "q": "What would your ideal job look like?",
+              "alt": [
+                "If you could design your perfect job, what would it be like?",
+                "What is your dream job?"
+              ]
+            },
+            {
+              "q": "What steps would you need to take to get closer to that ideal job?",
+              "alt": [
+                "What skills or experience do you need for your dream job?",
+                "How could you move from your current job to your ideal job?"
+              ]
+            }
+          ]
+        },
+        "changes": {
+          "description": "How work and professions are evolving.",
+          "questions": [
+            {
+              "q": "How has your profession changed in the last few years?",
+              "alt": [
+                "What changes have you noticed in your field?",
+                "How has your job evolved recently?"
+              ]
+            },
+            {
+              "q": "Do you think remote work is the future?",
+              "alt": [
+                "How do you feel about working from home?",
+                "What are the pros and cons of remote work for you?"
+              ]
+            }
+          ]
+        }
+      },
+      "expansion": [
+        "How important is work-life balance for you, and why?",
+        "What career goals do you have for the next few years?",
+        "Do you think companies should care more about employees' mental health?"
+      ]
+    },
+
+    "social_media": {
+      "intro": "Let’s talk about social media and its impact on daily life.",
+      "rotation": {
+        "subtopics": ["daily_use", "impact", "time_management", "improvements"],
+        "avoid_repeating_last_subtopic": true
+      },
+      "subtopics": {
+        "daily_use": {
+          "description": "How the student uses social media in everyday life.",
+          "questions": [
+            {
+              "q": "How does social media influence your daily life?",
+              "alt": [
+                "How much time do you spend on social media?",
+                "How does social media affect your routine?"
+              ]
+            },
+            {
+              "q": "Which social media platforms do you use the most, and why?",
+              "alt": [
+                "Do you prefer Instagram, TikTok, Facebook, or something else?",
+                "What do you usually do when you open social media?"
+              ]
+            }
+          ]
+        },
+        "impact": {
+          "description": "Positive and negative effects of social media.",
+          "questions": [
+            {
+              "q": "Do you think social media is more positive or negative for society?",
+              "alt": [
+                "What are the pros and cons of social media?",
+                "Do you think social media helps or harms people?"
+              ]
+            },
+            {
+              "q": "How does social media affect your relationships with friends and family?",
+              "alt": [
+                "Do you feel closer or more distant because of social media?",
+                "Has social media ever caused conflicts in your relationships?"
+              ]
+            }
+          ]
+        },
+        "time_management": {
+          "description": "How the student manages screen time and distraction.",
+          "questions": [
+            {
+              "q": "How do you manage your time on social platforms?",
+              "alt": [
+                "Do you set limits for social media use?",
+                "How do you avoid spending too much time online?"
+              ]
+            },
+            {
+              "q": "Have you ever taken a break from social media?",
+              "alt": [
+                "Have you ever deleted an app to focus more?",
+                "How did you feel when you used social media less?"
+              ]
+            }
+          ]
+        },
+        "improvements": {
+          "description": "Ideas to make social media healthier and more useful.",
+          "questions": [
+            {
+              "q": "What changes would you make to improve social media?",
+              "alt": [
+                "If you could redesign social media, what would you change?",
+                "What improvements do you think social platforms need?"
+              ]
+            },
+            {
+              "q": "How can people use social media more responsibly?",
+              "alt": [
+                "What advice would you give to someone who spends too much time online?",
+                "How can we protect our mental health when using social media?"
+              ]
+            }
+          ]
+        }
+      },
+      "expansion": [
+        "How does social media affect mental health, in your opinion?",
+        "Do you think influencers have too much power? Why or why not?",
+        "How should schools or parents educate young people about social media?"
+      ]
+    },
+
+    "environment": {
+      "intro": "Today we’ll talk about the environment and sustainability.",
+      "rotation": {
+        "subtopics": ["concerns", "actions", "local_effects", "politics"],
+        "avoid_repeating_last_subtopic": true
+      },
+      "subtopics": {
+        "concerns": {
+          "description": "Environmental issues that worry the student.",
+          "questions": [
+            {
+              "q": "What environmental issues worry you the most?",
+              "alt": [
+                "Which environmental problems concern you?",
+                "What ecological issues do you think are most urgent?"
+              ]
+            },
+            {
+              "q": "Do you think people around you care about these issues?",
+              "alt": [
+                "Do your friends and family talk about environmental problems?",
+                "Do you feel that people are aware of these problems?"
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "description": "What individuals can do to help the environment.",
+          "questions": [
+            {
+              "q": "What can individuals do to help the environment?",
+              "alt": [
+                "What small actions can people take to protect the planet?",
+                "How can we reduce our environmental impact?"
+              ]
+            },
+            {
+              "q": "What do you personally do to be more environmentally friendly?",
+              "alt": [
+                "Have you changed any habits to help the environment?",
+                "Is there anything you would like to start doing for the planet?"
+              ]
+            }
+          ]
+        },
+        "local_effects": {
+          "description": "How climate change and environmental issues affect the student’s country or region.",
+          "questions": [
+            {
+              "q": "How has climate change affected your country?",
+              "alt": [
+                "Have you noticed any climate changes where you live?",
+                "How is your region affected by climate change?"
+              ]
+            },
+            {
+              "q": "Have you seen any extreme weather events or changes in seasons?",
+              "alt": [
+                "Do you feel the weather is different from when you were younger?",
+                "Have you noticed any changes in nature around you?"
+              ]
+            }
+          ]
+        },
+        "politics": {
+          "description": "Government and companies’ role in protecting the environment.",
+          "questions": [
+            {
+              "q": "Do you think governments are doing enough to protect the planet?",
+              "alt": [
+                "Should governments take stronger action on climate issues?",
+                "Do you think environmental policies are effective?"
+              ]
+            },
+            {
+              "q": "How can companies reduce their environmental footprint?",
+              "alt": [
+                "Do you think businesses should be responsible for pollution?",
+                "What rules should exist for big companies about the environment?"
+              ]
+            }
+          ]
+        }
+      },
+      "expansion": [
+        "What long-term solutions do you think are necessary to protect the environment?",
+        "Do you think environmental education should be mandatory in schools?",
+        "How can technology help solve environmental problems?"
+      ]
+    }
+  },
+
+  "editorial": {
+    "tips": [
+      "Try to connect your ideas using words like 'because', 'however', or 'for example'.",
+      "If you’re not sure about a word, use a simpler one — communication is more important than perfection.",
+      "You can use phrases like 'In my opinion' or 'From my point of view' to sound more natural.",
+      "To make your answers stronger, try to include at least one example."
+    ],
+    "mini_challenges": [
+      "In your next answer, try to use the past tense.",
+      "Can you answer the next question using 'because' in your explanation?",
+      "Try to give at least one example in your next answer.",
+      "For the next question, try to use three full sentences."
+    ],
+    "fun_facts": [
+      "Did you know that English is spoken as a second language by more people than as a native language?",
+      "English has borrowed words from many languages, like 'ballet' from French and 'piano' from Italian.",
+      "There are more than 170,000 words currently in use in the English language.",
+      "The word 'set' has one of the highest numbers of different meanings in English."
+    ],
+    "praise": [
+      "Nice job expressing your ideas.",
+      "That was a clear and natural answer.",
+      "You’re using very good vocabulary for your level.",
+      "I like how you explained your opinion.",
+      "You’re improving your fluency little by little — keep going."
+    ]
+  },
+
+  "prompts": {
+    "warmup": "Ask the student a warm-up question about their day or week. Keep it simple and friendly. Encourage them to answer in at least one or two full sentences.",
+    "topic_intro": "Introduce the topic of the day in a natural and engaging way. Connect it to something the student mentioned in the warm-up if possible.",
+    "guided_question": "Ask an open-ended question about the current topic and subtopic. The question should invite explanation and opinion, not just yes/no.",
+    "correction": "If needed, correct only one important mistake from the student's last message. Be friendly, keep it short, and give one natural example sentence that they could use instead.",
+    "expansion": "Ask a deeper follow-up question based on the student’s last answer. Encourage more detailed explanations, reasons, or examples.",
+    "wrapup_continue": "Ask a short, simple follow-up question to keep the conversation going if there is still time. Keep it natural and not too demanding.",
+    "wrapup": "Give positive feedback, mention what the student practised today, and suggest what they could focus on next time. Keep the tone warm and encouraging."
+  },
+
+  "flow": {
+    "start_phase": "warmup",
+    "order": [
+      "warmup",
+      "topic_intro",
+      "guided_questions",
+      "correction",
+      "expansion",
+      "wrapup"
+    ],
+    "rules": {
+      "warmup_to_topic_intro": "After 1–2 warm-up questions and at least one meaningful student response.",
+      "topic_intro_to_guided_questions": "Immediately after introducing the topic and confirming the student understood.",
+      "guided_questions_to_expansion": "After 3–6 guided questions OR when the student gives a longer, more reflective answer.",
+      "expansion_to_wrapup": "After 1–2 deeper follow-up questions, or when time is almost finished.",
+      "use_wrapup_continue": "If there is still time but the main objectives are already covered, ask 1–2 simple follow-up questions before the final wrap-up."
+    },
+    "rotation": {
+      "avoid_repeating_last_topic": true,
+      "avoid_repeating_last_subtopic": true
+    }
+  }
+}
