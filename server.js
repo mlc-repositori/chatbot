@@ -9,7 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 const app = express();
 app.use(cors());
 app.use(express.json());
-// Servir archivos estáticos
+// Servir archivos estáticos 
 app.use(express.static("public"));
 
 // ------------------ SUPABASE ------------------
