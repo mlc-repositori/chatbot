@@ -123,37 +123,32 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   GRABACIÓN DE AUDIO — VERSIÓN FINAL
+   BOTÓN HABLAR — VERSIÓN DEFINITIVA
+   MediaRecorder.start() está DIRECTAMENTE dentro del click
 ----------------------------------------------------------- */
-let mediaRecorder = null;
-let audioChunks = [];
-let mediaStream = null;
+document.getElementById("startBtn").onclick = async () => {
+  userText.textContent = "(Listening...)";
 
-async function startRecording() {
   try {
     // 1) Pedir permiso al micro
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
     // 2) Detectar formato soportado
     let mimeType = null;
+    if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
+    else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
 
-    if (MediaRecorder.isTypeSupported("audio/webm")) {
-      mimeType = "audio/webm";
-    } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-      mimeType = "audio/mp4";
-    }
+    // 3) Crear MediaRecorder
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    const chunks = [];
 
-    // 3) Crear MediaRecorder con un MIME válido
-    mediaRecorder = new MediaRecorder(mediaStream, mimeType ? { mimeType } : {});
-    audioChunks = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
 
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
-    mediaRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: mimeType || "audio/webm" });
+    recorder.onstop = async () => {
+      const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
 
       const formData = new FormData();
-      formData.append("audio", audioBlob, "audio");
+      formData.append("audio", blob, "audio");
 
       const sttRes = await fetch(API_BASE + "/stt", {
         method: "POST",
@@ -167,16 +162,17 @@ async function startRecording() {
       sendToChatbot(transcript);
     };
 
-    mediaRecorder.start();
-    userText.textContent = "(Listening...)";
+    // 4) GRABAR (Edge, iPhone y Android exigen que esté aquí)
+    recorder.start();
 
-    setTimeout(() => mediaRecorder.stop(), 3000);
+    // 5) Parar a los 3 segundos
+    setTimeout(() => recorder.stop(), 3000);
 
   } catch (err) {
-    console.error("Mic error:", err);
+    console.error(err);
     userText.textContent = "Microphone error";
   }
-}
+};
 
 /* ----------------------------------------------------------
    ENVIAR TEXTO AL CHATBOT
@@ -245,11 +241,6 @@ function playAudio(text, base64Audio) {
 
   audio.play();
 }
-
-/* ----------------------------------------------------------
-   BOTÓN HABLAR
------------------------------------------------------------ */
-document.getElementById("startBtn").onclick = startRecording;
 
 /* ----------------------------------------------------------
    SALUDO INICIAL
