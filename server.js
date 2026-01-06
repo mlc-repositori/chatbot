@@ -9,7 +9,8 @@ import { createClient } from "@supabase/supabase-js";
 const app = express();
 app.use(cors());
 app.use(express.json());
-// Servir archivos estáticos 
+
+// Servir archivos estáticos
 app.use(express.static("public"));
 
 // ------------------ SUPABASE ------------------
@@ -33,7 +34,7 @@ function getToday() {
 const upload = multer({ dest: "uploads/" });
 
 // ============================================================
-// 🔊 RUTA STT — Whisper (OpenAI)
+// 🔊 RUTA STT — Whisper (OpenAI) — AHORA ACEPTA MP4 + WEBM
 // ============================================================
 app.post("/stt", upload.single("audio"), async (req, res) => {
   try {
@@ -63,7 +64,7 @@ app.post("/stt", upload.single("audio"), async (req, res) => {
 });
 
 // ============================================================
-// 🔥 MOTOR PEDAGÓGICO PRO (igual que tu backend antiguo)
+// 🔥 MOTOR PEDAGÓGICO COMPLETO (sin cambios)
 // ============================================================
 
 function pickRandomTopic(previousTopic = null) {
@@ -221,24 +222,21 @@ function advancePhase(ip) {
 }
 
 // ============================================================
-// 🤖 RUTA CHAT — GPT‑4o‑mini + TTS en la misma respuesta
+// 🤖 RUTA CHAT — GPT‑4o‑mini + TTS
 // ============================================================
 app.post("/chat", async (req, res) => {
   const { message, history, firstname, lastname, userId, email } = req.body;
 
-  // Guardar usuario en Supabase
   await supabase.from("users").upsert({ userId, firstname, lastname, email });
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
 
   if (!sessions[ip]) initSession(ip);
 
-  // Antifraude
   if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
 
   const effectiveUserId = sessions[ip].userId || userId || null;
 
-  // Leer tiempo usado
   const today = getToday();
   let used = 0;
 
@@ -261,7 +259,6 @@ app.post("/chat", async (req, res) => {
     });
   }
 
-  // Prompt pedagógico
   const phasePrompt = getPromptForPhase(ip, message);
 
   const systemPrompt = `
@@ -272,7 +269,6 @@ Always end with a question.
 Current phase instructions: ${phasePrompt}
 `;
 
-  // Historial
   let historyMessages = [];
   if (Array.isArray(history)) {
     history.forEach(turn => {
@@ -281,7 +277,6 @@ Current phase instructions: ${phasePrompt}
     });
   }
 
-  // Llamada al modelo
   const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -367,7 +362,6 @@ app.post("/ttsTime", async (req, res) => {
     return res.json({ ok: true, total: newTotal });
   }
 
-  // fallback por IP
   const { data } = await supabase
     .from("usage")
     .select("seconds")
