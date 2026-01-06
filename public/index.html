@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Virtual English Tutor </title>
+  <title>Virtual English Tutor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -123,45 +123,57 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   GRABACIÓN DE AUDIO + STT
+   GRABACIÓN DE AUDIO (COMPATIBLE PC + ANDROID + iPHONE)
 ----------------------------------------------------------- */
 let mediaRecorder = null;
 let audioChunks = [];
 let mediaStream = null;
 
 async function startRecording() {
-  if (!mediaStream) {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  try {
+    if (!mediaStream) {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+
+    // MIME universal: Safari usa mp4, Chrome usa webm
+    let options = { mimeType: "audio/mp4" };
+    if (!MediaRecorder.isTypeSupported("audio/mp4")) {
+      options = { mimeType: "audio/webm" };
+    }
+
+    mediaRecorder = new MediaRecorder(mediaStream, options);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: options.mimeType });
+
+      const formData = new FormData();
+      formData.append("audio", audioBlob, options.mimeType === "audio/mp4" ? "audio.mp4" : "audio.webm");
+
+      const sttRes = await fetch(API_BASE + "/stt", {
+        method: "POST",
+        body: formData
+      });
+
+      const sttData = await sttRes.json();
+      const transcript = sttData.text || "";
+
+      userText.textContent = transcript;
+
+      sendToChatbot(transcript);
+    };
+
+    mediaRecorder.start();
+    userText.textContent = "(Listening...)";
+
+    setTimeout(() => mediaRecorder.stop(), 3000);
+
+  } catch (err) {
+    console.error("Mic error:", err);
+    userText.textContent = "Microphone error";
   }
-
-  mediaRecorder = new MediaRecorder(mediaStream);
-  audioChunks = [];
-
-  mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
-  mediaRecorder.onstop = async () => {
-    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-
-    const formData = new FormData();
-    formData.append("audio", audioBlob, "audio.webm");
-
-    const sttRes = await fetch(API_BASE + "/stt", {
-      method: "POST",
-      body: formData
-    });
-
-    const sttData = await sttRes.json();
-    const transcript = sttData.text || "";
-
-    userText.textContent = transcript;
-
-    sendToChatbot(transcript);
-  };
-
-  mediaRecorder.start();
-  userText.textContent = "(Listening...)";
-
-  setTimeout(() => mediaRecorder.stop(), 3000);
 }
 
 /* ----------------------------------------------------------
