@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Test Edge: cadena de funciones</h2>
+
+<button onclick="start()">Hablar</button>
+
+<p id="status"></p>
+
+<script>
+function start() {
+  document.getElementById("status").textContent = "start() → ok";
+  step2();
+}
+
+function step2() {
+  document.getElementById("status").textContent = "step2() → ok";
+  step3();
+}
+
+async function step3() {
+  document.getElementById("status").textContent = "step3() → pidiendo micro...";
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const rec = new MediaRecorder(stream);
+    const chunks = [];
+
+    rec.ondataavailable = e => chunks.push(e.data);
+
+    rec.onstop = () => {
+      document.getElementById("status").textContent = "Reproduciendo...";
+      const blob = new Blob(chunks);
+      const audio = new Audio(URL.createObjectURL(blob));
+      audio.play();
+    };
+
+    rec.start();
+    document.getElementById("status").textContent = "Grabando...";
+
+    setTimeout(() => rec.stop(), 2000);
+
+  } catch (err) {
+    document.getElementById("status").textContent = "ERROR: " + err.name;
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
