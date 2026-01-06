@@ -123,7 +123,7 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   GRABACIÓN DE AUDIO — WAV UNIVERSAL
+   GRABACIÓN DE AUDIO — VERSIÓN UNIVERSAL
 ----------------------------------------------------------- */
 let mediaRecorder = null;
 let audioChunks = [];
@@ -131,23 +131,21 @@ let mediaStream = null;
 
 async function startRecording() {
   try {
-    if (!mediaStream) {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    }
+    // 1) Pedir permiso al micro SIEMPRE
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    // WAV universal (funciona en TODOS los navegadores)
-    const options = { mimeType: "audio/wav" };
-
-    mediaRecorder = new MediaRecorder(mediaStream, options);
+    // 2) No pasar mimeType → el navegador elige uno válido
+    mediaRecorder = new MediaRecorder(mediaStream);
     audioChunks = [];
 
     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
     mediaRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      // 3) Blob sin tipo → Whisper lo acepta igual
+      const audioBlob = new Blob(audioChunks);
 
       const formData = new FormData();
-      formData.append("audio", audioBlob, "audio.wav");
+      formData.append("audio", audioBlob, "audio");
 
       const sttRes = await fetch(API_BASE + "/stt", {
         method: "POST",
