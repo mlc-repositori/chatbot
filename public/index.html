@@ -123,7 +123,7 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   GRABACIÓN DE AUDIO (COMPATIBLE PC + ANDROID + iPHONE)
+   GRABACIÓN DE AUDIO — WAV UNIVERSAL
 ----------------------------------------------------------- */
 let mediaRecorder = null;
 let audioChunks = [];
@@ -135,11 +135,8 @@ async function startRecording() {
       mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     }
 
-    // MIME universal: Safari usa mp4, Chrome usa webm
-    let options = { mimeType: "audio/mp4" };
-    if (!MediaRecorder.isTypeSupported("audio/mp4")) {
-      options = { mimeType: "audio/webm" };
-    }
+    // WAV universal (funciona en TODOS los navegadores)
+    const options = { mimeType: "audio/wav" };
 
     mediaRecorder = new MediaRecorder(mediaStream, options);
     audioChunks = [];
@@ -147,10 +144,10 @@ async function startRecording() {
     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
     mediaRecorder.onstop = async () => {
-      const audioBlob = new Blob(audioChunks, { type: options.mimeType });
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
 
       const formData = new FormData();
-      formData.append("audio", audioBlob, options.mimeType === "audio/mp4" ? "audio.mp4" : "audio.webm");
+      formData.append("audio", audioBlob, "audio.wav");
 
       const sttRes = await fetch(API_BASE + "/stt", {
         method: "POST",
@@ -161,7 +158,6 @@ async function startRecording() {
       const transcript = sttData.text || "";
 
       userText.textContent = transcript;
-
       sendToChatbot(transcript);
     };
 
