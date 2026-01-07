@@ -315,15 +315,25 @@ startBtn.onclick = async () => {
    REPRODUCIR AUDIO TTS (ADAPTADO PARA IPHONE)
 ----------------------------------------------------------- */
 async function playAudio(text, base64Audio) {
-  if (!base64Audio) return;
+  if (!base64Audio) {
+    alert("playAudio: NO base64Audio");
+    return;
+  }
 
-  // 🔥 FIX iPhone: asegurar AudioContext activo ANTES de reproducir
+  alert("playAudio: recibido audio, longitud base64 = " + base64Audio.length);
+
+  // 🔥 iPhone: asegurar AudioContext activo
   if (isIphone) {
     if (!audioContext) {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioContext.state === "suspended") {
-      await audioContext.resume();
+      try {
+        await audioContext.resume();
+        alert("AudioContext reanudado en iPhone");
+      } catch (e) {
+        alert("Error al reanudar AudioContext: " + e.message);
+      }
     }
   }
 
@@ -331,10 +341,12 @@ async function playAudio(text, base64Audio) {
 
   audio.onplay = () => {
     avatar.src = "teachergif2.gif";
+    alert("onplay: el audio ha empezado (evento lanzado)");
   };
 
   audio.onended = () => {
     avatar.src = "avatarprofemujer2.jpg";
+    alert("onended: el audio ha terminado");
 
     fetch(API_BASE + "/ttsTime", {
       method: "POST",
@@ -344,14 +356,19 @@ async function playAudio(text, base64Audio) {
         seconds: audio.duration
       })
     })
-    .then(r => r.json())
-    .then(d => {
-      const remaining = Math.max(300 - d.total, 0);
-      timeSpent.textContent = formatTime(remaining);
-    });
+      .then(r => r.json())
+      .then(d => {
+        const remaining = Math.max(300 - d.total, 0);
+        timeSpent.textContent = formatTime(remaining);
+      });
   };
 
-  audio.play();
+  try {
+    await audio.play();
+    alert("audio.play() ha RESUELTO sin error");
+  } catch (err) {
+    alert("audio.play() ERROR: " + err.message);
+  }
 }
 
 /* ----------------------------------------------------------
