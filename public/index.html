@@ -63,7 +63,8 @@
       <h3>Virtual English Tutor</h3>
 
       <!-- Botón de desbloqueo de sonido SOLO iPhone -->
-      <button id="unlockBtn" style="display:none;" disabled>🔊 Activar sonido</button>
+      
+      <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
 
       <button id="startBtn">🎤 Speak</button>
 
@@ -138,9 +139,9 @@
     }
   }
 
-  if (unlockBtn) {
-    unlockBtn.onclick = unlockAudio;
-  }
+ window.addEventListener("DOMContentLoaded", () => {
+  if (unlockBtn) unlockBtn.onclick = unlockAudio;
+});
 
   /* ----------------------------------------------------------
      HISTORIAL LOCAL
