@@ -56,297 +56,307 @@
 </head>
 
 <body>
+  <div class="chatbot-container">
+    <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
 
-<div class="chatbot-container">
-  <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
+    <div>
+      <h3>Virtual English Tutor</h3>
 
-  <div>
-    <h3>Virtual English Tutor</h3>
+      <!-- Botón de desbloqueo de sonido SOLO iPhone -->
+      <button id="unlockBtn" style="display:none;" disabled>🔊 Activar sonido</button>
 
-    <button id="startBtn">🎤 Speak</button>
+      <button id="startBtn">🎤 Speak</button>
 
-    <p><strong>You:</strong> <span id="userText"></span></p>
-    <p><strong>Teacher:</strong> <span id="botText"></span></p>
+      <p><strong>You:</strong> <span id="userText"></span></p>
+      <p><strong>Teacher:</strong> <span id="botText"></span></p>
 
-    <p id="timeRow" style="display:none;">
-      <strong>Time remaining:</strong> <span id="timeSpent"></span>
-    </p>
+      <p id="timeRow" style="display:none;">
+        <strong>Time remaining:</strong> <span id="timeSpent"></span>
+      </p>
+    </div>
   </div>
-</div>
 
-<script>
-/* ----------------------------------------------------------
-   CONFIG
------------------------------------------------------------ */
-const API_BASE = "https://chatbot-xzhi.onrender.com";
+  <script>
+  /* ----------------------------------------------------------
+     CONFIG
+  ----------------------------------------------------------- */
+  const API_BASE = "https://chatbot-xzhi.onrender.com";
 
-const avatar = document.getElementById("avatar");
-const userText = document.getElementById("userText");
-const botText = document.getElementById("botText");
-const timeSpent = document.getElementById("timeSpent");
-const timeRow = document.getElementById("timeRow");
+  const avatar = document.getElementById("avatar");
+  const userText = document.getElementById("userText");
+  const botText = document.getElementById("botText");
+  const timeSpent = document.getElementById("timeSpent");
+  const timeRow = document.getElementById("timeRow");
+  const unlockBtn = document.getElementById("unlockBtn");
+  const startBtn = document.getElementById("startBtn");
 
-/* ----------------------------------------------------------
-   🔍 DETECTAR SI ES IPHONE
------------------------------------------------------------ */
-const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  let audioContext = null;
 
-/* ----------------------------------------------------------
-   🔊 MOSTRAR BOTÓN SOLO EN IPHONE
------------------------------------------------------------ */
-if (isIphone) {
-  document.getElementById("unlockBtn").style.display = "inline-block";
-  document.getElementById("startBtn").disabled = true;
-}
+  /* ----------------------------------------------------------
+     🔍 DETECTAR SI ES IPHONE
+  ----------------------------------------------------------- */
+  const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-/* ----------------------------------------------------------
-   🔊 DESBLOQUEO DE AUDIO (solo iPhone)
------------------------------------------------------------ */
-let audioUnlocked = false;
-
-async function unlockAudio() {
-  if (!isIphone) return;
-  if (audioUnlocked) return;
-
-  try {
-    const silent = new Audio();
-    silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
-    await silent.play().catch(() => {});
-  } catch (e) {
-    console.warn("Silent audio failed:", e);
+  /* ----------------------------------------------------------
+     🔊 MOSTRAR BOTÓN SOLO EN IPHONE
+  ----------------------------------------------------------- */
+  if (isIphone && unlockBtn) {
+    unlockBtn.style.display = "inline-block";
+    startBtn.disabled = true;
   }
 
-  audioUnlocked = true;
+  /* ----------------------------------------------------------
+     🔊 DESBLOQUEO DE AUDIO (solo iPhone)
+  ----------------------------------------------------------- */
+  let audioUnlocked = false;
 
-  document.getElementById("startBtn").disabled = false;
+  async function unlockAudio() {
+    if (!isIphone) return;
+    if (audioUnlocked) return;
 
-  const ub = document.getElementById("unlockBtn");
-  ub.disabled = true;
-  ub.textContent = "Sonido activado";
-
-  const lastBotMessage = botText.textContent.trim();
-  if (lastBotMessage) {
-    setTimeout(() => playAudio(lastBotMessage, null), 150);
-  }
-}
-
-document.getElementById("unlockBtn").onclick = unlockAudio;
-
-/* ----------------------------------------------------------
-   HISTORIAL LOCAL
------------------------------------------------------------ */
-function getTodayKey() {
-  return "history_" + new Date().toISOString().split("T")[0];
-}
-
-function saveHistory(userMsg, botMsg) {
-  const key = getTodayKey();
-  let h = JSON.parse(localStorage.getItem(key) || "[]");
-
-  h.push({ user: userMsg, bot: botMsg });
-  if (h.length > 5) h = h.slice(-5);
-
-  localStorage.setItem(key, JSON.stringify(h));
-}
-
-function loadLastHistory() {
-  const key = getTodayKey();
-  const h = JSON.parse(localStorage.getItem(key) || "[]");
-  if (h.length > 0) {
-    const last = h[h.length - 1];
-    userText.textContent = last.user;
-    botText.textContent = last.bot;
-  }
-}
-
-/* ----------------------------------------------------------
-   FORMATEAR TIEMPO
------------------------------------------------------------ */
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-}
-
-/* ----------------------------------------------------------
-   BOTÓN HABLAR — DETECCIÓN DE SILENCIO + LIBERACIÓN MICRO
------------------------------------------------------------ */
-document.getElementById("startBtn").onclick = async () => {
-  userText.textContent = "(Listening...)";
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    let mimeType = null;
-    if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
-    else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
-
-    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-    const chunks = [];
-
-    recorder.ondataavailable = e => chunks.push(e.data);
-
-    recorder.onstop = async () => {
-
-      // 🔥 LIBERAR MICRO
-      try {
-        stream.getTracks().forEach(t => t.stop());
-        if (audioContext && audioContext.state !== "closed") {
-          audioContext.close();
-        }
-      } catch (e) {}
-
-      const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
-
-      const formData = new FormData();
-      formData.append("audio", blob, "audio.webm");
-
-      const sttRes = await fetch(API_BASE + "/stt", {
-        method: "POST",
-        body: formData
-      });
-
-      const sttData = await sttRes.json();
-      const transcript = sttData.text || "";
-      userText.textContent = transcript;
-
-      sendToChatbot(transcript);
-    };
-
-    // --- DETECCIÓN DE SILENCIO ---
-    audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-    source.connect(analyser);
-
-    let silenceStart = Date.now();
-    const SILENCE_THRESHOLD = 0.01;
-    const SILENCE_DURATION = 1500;
-
-    function checkSilence() {
-      const data = new Uint8Array(analyser.fftSize);
-      analyser.getByteTimeDomainData(data);
-
-      let sum = 0;
-      for (let i = 0; i < data.length; i++) {
-        const v = (data[i] - 128) / 128;
-        sum += v * v;
-      }
-      const rms = Math.sqrt(sum / data.length);
-
-      if (rms < SILENCE_THRESHOLD) {
-        if (Date.now() - silenceStart > SILENCE_DURATION) {
-          recorder.stop();
-          return;
-        }
-      } else {
-        silenceStart = Date.now();
-      }
-
-      requestAnimationFrame(checkSilence);
+    try {
+      const silent = new Audio();
+      silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
+      await silent.play().catch(() => {});
+    } catch (e) {
+      console.warn("Silent audio failed:", e);
     }
 
-    recorder.start();
-    checkSilence();
+    audioUnlocked = true;
 
-  } catch (err) {
-    userText.textContent = "Microphone error";
+    startBtn.disabled = false;
+
+    if (unlockBtn) {
+      unlockBtn.disabled = true;
+      unlockBtn.textContent = "Sonido activado";
+    }
+
+    const lastBotMessage = botText.textContent.trim();
+    if (lastBotMessage) {
+      // No forzamos TTS aquí porque tu TTS depende de base64 del servidor
+      // y no lo tenemos guardado; simplemente dejamos el texto visible.
+    }
   }
-};
 
-/* ----------------------------------------------------------
-   ENVIAR TEXTO AL CHATBOT
------------------------------------------------------------ */
-async function sendToChatbot(message) {
-  const key = getTodayKey();
-  const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
-  const last3 = fullHistory.slice(-3);
+  if (unlockBtn) {
+    unlockBtn.onclick = unlockAudio;
+  }
 
-  const res = await fetch(API_BASE + "/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      message,
-      history: last3,
-      firstname: "Student",
-      lastname: "",
-      userId: "browser_user",
-      email: null
-    })
-  });
+  /* ----------------------------------------------------------
+     HISTORIAL LOCAL
+  ----------------------------------------------------------- */
+  function getTodayKey() {
+    return "history_" + new Date().toISOString().split("T")[0];
+  }
 
-  const data = await res.json();
-  const reply = data.reply || "Error";
-  botText.textContent = reply;
+  function saveHistory(userMsg, botMsg) {
+    const key = getTodayKey();
+    let h = JSON.parse(localStorage.getItem(key) || "[]");
 
-  saveHistory(message, reply);
+    h.push({ user: userMsg, bot: botMsg });
+    if (h.length > 5) h = h.slice(-5);
 
-  const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
-  timeSpent.textContent = formatTime(remaining);
-  timeRow.style.display = "block";
+    localStorage.setItem(key, JSON.stringify(h));
+  }
 
-  playAudio(reply, data.audio);
-}
+  function loadLastHistory() {
+    const key = getTodayKey();
+    const h = JSON.parse(localStorage.getItem(key) || "[]");
+    if (h.length > 0) {
+      const last = h[h.length - 1];
+      userText.textContent = last.user;
+      botText.textContent = last.bot;
+    }
+  }
 
-/* ----------------------------------------------------------
-   REPRODUCIR AUDIO TTS
------------------------------------------------------------ */
-function playAudio(text, base64Audio) {
-  if (!base64Audio) return;
+  /* ----------------------------------------------------------
+     FORMATEAR TIEMPO
+  ----------------------------------------------------------- */
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  }
 
-  const audio = new Audio("data:audio/mp3;base64," + base64Audio);
+  /* ----------------------------------------------------------
+     BOTÓN HABLAR — DETECCIÓN DE SILENCIO + LIBERACIÓN MICRO
+  ----------------------------------------------------------- */
+  startBtn.onclick = async () => {
+    userText.textContent = "(Listening...)";
 
-  audio.onplay = () => {
-    avatar.src = "teachergif2.gif";
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      let mimeType = null;
+      if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
+      else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      const chunks = [];
+
+      recorder.ondataavailable = e => chunks.push(e.data);
+
+      recorder.onstop = async () => {
+        // 🔥 LIBERAR MICRO Y AUDIOCONTEXT
+        try {
+          stream.getTracks().forEach(t => t.stop());
+          if (audioContext && audioContext.state !== "closed") {
+            await audioContext.close();
+          }
+        } catch (e) {
+          console.warn("Error liberando audio:", e);
+        }
+
+        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+
+        const formData = new FormData();
+        formData.append("audio", blob, "audio.webm");
+
+        const sttRes = await fetch(API_BASE + "/stt", {
+          method: "POST",
+          body: formData
+        });
+
+        const sttData = await sttRes.json();
+        const transcript = sttData.text || "";
+        userText.textContent = transcript;
+
+        sendToChatbot(transcript);
+      };
+
+      // --- DETECCIÓN DE SILENCIO ---
+      audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+
+      let silenceStart = Date.now();
+      const SILENCE_THRESHOLD = 0.01;
+      const SILENCE_DURATION = 1500;
+
+      function checkSilence() {
+        const data = new Uint8Array(analyser.fftSize);
+        analyser.getByteTimeDomainData(data);
+
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / data.length);
+
+        if (rms < SILENCE_THRESHOLD) {
+          if (Date.now() - silenceStart > SILENCE_DURATION) {
+            recorder.stop();
+            return;
+          }
+        } else {
+          silenceStart = Date.now();
+        }
+
+        requestAnimationFrame(checkSilence);
+      }
+
+      recorder.start();
+      checkSilence();
+
+    } catch (err) {
+      console.error("Microphone error:", err);
+      userText.textContent = "Microphone error";
+    }
   };
 
-  audio.onended = () => {
-    avatar.src = "avatarprofemujer2.jpg";
+  /* ----------------------------------------------------------
+     ENVIAR TEXTO AL CHATBOT
+  ----------------------------------------------------------- */
+  async function sendToChatbot(message) {
+    const key = getTodayKey();
+    const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
+    const last3 = fullHistory.slice(-3);
 
-    fetch(API_BASE + "/ttsTime", {
+    const res = await fetch(API_BASE + "/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        message,
+        history: last3,
+        firstname: "Student",
+        lastname: "",
         userId: "browser_user",
-        seconds: audio.duration
+        email: null
       })
-    })
-    .then(r => r.json())
-    .then(d => {
-      const remaining = Math.max(300 - d.total, 0);
-      timeSpent.textContent = formatTime(remaining);
-    });
-  };
-
-  audio.play();
-}
-
-/* ----------------------------------------------------------
-   SALUDO INICIAL
------------------------------------------------------------ */
-window.addEventListener("load", () => {
-  const todayKey = getTodayKey();
-  const last = JSON.parse(localStorage.getItem(todayKey) || "[]");
-
-  if (last.length > 0) {
-    loadLastHistory();
-  } else {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric"
     });
 
-    const greeting = `Hello! I'm your virtual English tutor. Welcome to today's practice, ${dateStr}.`;
-    botText.textContent = greeting;
+    const data = await res.json();
+    const reply = data.reply || "Error";
+    botText.textContent = reply;
 
-    saveHistory("", greeting);
+    saveHistory(message, reply);
+
+    const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
+    timeSpent.textContent = formatTime(remaining);
+    timeRow.style.display = "block";
+
+    playAudio(reply, data.audio);
   }
-});
-</script>
 
+  /* ----------------------------------------------------------
+     REPRODUCIR AUDIO TTS
+  ----------------------------------------------------------- */
+  function playAudio(text, base64Audio) {
+    if (!base64Audio) return;
 
+    const audio = new Audio("data:audio/mp3;base64," + base64Audio);
+
+    audio.onplay = () => {
+      avatar.src = "teachergif2.gif";
+    };
+
+    audio.onended = () => {
+      avatar.src = "avatarprofemujer2.jpg";
+
+      fetch(API_BASE + "/ttsTime", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: "browser_user",
+          seconds: audio.duration
+        })
+      })
+      .then(r => r.json())
+      .then(d => {
+        const remaining = Math.max(300 - d.total, 0);
+        timeSpent.textContent = formatTime(remaining);
+      });
+    };
+
+    audio.play();
+  }
+
+  /* ----------------------------------------------------------
+     SALUDO INICIAL
+  ----------------------------------------------------------- */
+  window.addEventListener("load", () => {
+    const todayKey = getTodayKey();
+    const last = JSON.parse(localStorage.getItem(todayKey) || "[]");
+
+    if (last.length > 0) {
+      loadLastHistory();
+    } else {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric"
+      });
+
+      const greeting = `Hello! I'm your virtual English tutor. Welcome to today's practice, ${dateStr}.`;
+      botText.textContent = greeting;
+
+      saveHistory("", greeting);
+    }
+  });
+  </script>
 </body>
 </html>
