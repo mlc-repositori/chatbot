@@ -63,10 +63,13 @@
       <h3>Virtual English Tutor</h3>
 
       <!-- Botón de desbloqueo de sonido SOLO iPhone -->
-      
       <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
+<button id="startBtn" disabled>🎤 Speak</button>
 
-      <button id="startBtn">🎤 Speak</button>
+      
+     // <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
+
+      // <button id="startBtn">🎤 Speak</button>
 
       <p><strong>You:</strong> <span id="userText"></span></p>
       <p><strong>Teacher:</strong> <span id="botText"></span></p>
@@ -77,287 +80,299 @@
     </div>
   </div>
 
-  <script>
-  /* ----------------------------------------------------------
-     CONFIG
-  ----------------------------------------------------------- */
-  const API_BASE = "https://chatbot-xzhi.onrender.com";
+ <script>
+/* ----------------------------------------------------------
+   CONFIG
+----------------------------------------------------------- */
+const API_BASE = "https://chatbot-xzhi.onrender.com";
 
-  const avatar = document.getElementById("avatar");
-  const userText = document.getElementById("userText");
-  const botText = document.getElementById("botText");
-  const timeSpent = document.getElementById("timeSpent");
-  const timeRow = document.getElementById("timeRow");
-  const unlockBtn = document.getElementById("unlockBtn");
-  const startBtn = document.getElementById("startBtn");
+const avatar    = document.getElementById("avatar");
+const userText  = document.getElementById("userText");
+const botText   = document.getElementById("botText");
+const timeSpent = document.getElementById("timeSpent");
+const timeRow   = document.getElementById("timeRow");
+const unlockBtn = document.getElementById("unlockBtn");
+const startBtn  = document.getElementById("startBtn");
 
-  let audioContext = null;
+/* ----------------------------------------------------------
+   DETECTAR IPHONE
+----------------------------------------------------------- */
+const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  /* ----------------------------------------------------------
-     🔍 DETECTAR SI ES IPHONE
-  ----------------------------------------------------------- */
-  const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+/* ----------------------------------------------------------
+   VARIABLES GLOBALES (MISMA IDEA QUE EL SCRIPT ANTIGUO)
+----------------------------------------------------------- */
+let mediaRecorder = null;
+let audioChunks   = [];
+let mediaStream   = null;
+let audioContext  = null;
 
-  /* ----------------------------------------------------------
-     🔊 MOSTRAR BOTÓN SOLO EN IPHONE
-  ----------------------------------------------------------- */
-  if (isIphone && unlockBtn) {
-    unlockBtn.style.display = "inline-block";
-    startBtn.disabled = true;
+/* ----------------------------------------------------------
+   HISTORIAL
+----------------------------------------------------------- */
+function getTodayKey() {
+  return "history_" + new Date().toISOString().split("T")[0];
+}
+
+function saveHistory(userMsg, botMsg) {
+  const key = getTodayKey();
+  let history = JSON.parse(localStorage.getItem(key) || "[]");
+
+  history.push({ user: userMsg, bot: botMsg });
+  if (history.length > 5) {
+    history = history.slice(history.length - 5);
   }
 
-  /* ----------------------------------------------------------
-     🔊 DESBLOQUEO DE AUDIO (solo iPhone)
-  ----------------------------------------------------------- */
-  let audioUnlocked = false;
+  localStorage.setItem(key, JSON.stringify(history));
+}
 
-  async function unlockAudio() {
-    if (!isIphone) return;
-    if (audioUnlocked) return;
+function loadLastHistory() {
+  const key = getTodayKey();
+  const history = JSON.parse(localStorage.getItem(key) || "[]");
 
-    try {
-      const silent = new Audio();
-      silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
-      await silent.play().catch(() => {});
-    } catch (e) {
-      console.warn("Silent audio failed:", e);
+  if (history.length > 0) {
+    const last = history[history.length - 1];
+    userText.textContent = last.user;
+    botText.textContent  = last.bot;
+  }
+}
+
+/* ----------------------------------------------------------
+   FORMATEAR TIEMPO
+----------------------------------------------------------- */
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+/* ----------------------------------------------------------
+   MOSTRAR BOTÓN UNLOCK SOLO EN IPHONE
+----------------------------------------------------------- */
+if (isIphone) {
+  unlockBtn.style.display = "inline-block";
+} else {
+  // En Android/PC el botón Speak se habilita directamente
+  startBtn.disabled = false;
+}
+
+/* ----------------------------------------------------------
+   DESBLOQUEO DE AUDIO (solo iPhone)
+   – Mismo patrón que tu script antiguo
+----------------------------------------------------------- */
+let audioUnlocked = false;
+
+function unlockAudio() {
+  if (!isIphone) return;
+  if (audioUnlocked) return;
+
+  const silent = new Audio();
+  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
+  silent.play().catch(() => {});
+
+  audioUnlocked = true;
+
+  startBtn.disabled   = false;
+  unlockBtn.disabled  = true;
+  unlockBtn.textContent = "Sonido activado";
+
+  const lastBotMessage = botText.textContent.trim();
+  // En tu sistema nuevo, el audio del bot viene del servidor (base64),
+  // aquí solo mantenemos el texto: no re-disparamos TTS porque no
+  // guardamos el último audio base64.
+}
+
+unlockBtn.onclick = unlockAudio;
+
+/* ----------------------------------------------------------
+   BOTÓN HABLAR — MISMA LÓGICA QUE EL SCRIPT ANTIGUO
+   (mediaStream global + detección de silencio)
+----------------------------------------------------------- */
+startBtn.onclick = async () => {
+  userText.textContent = "(Listening...)";
+
+  try {
+    // Igual que en tu código antiguo: reusar mediaStream si existe
+    if (!mediaStream) {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     }
 
-    audioUnlocked = true;
+    mediaRecorder = new MediaRecorder(mediaStream);
+    audioChunks   = [];
 
-    startBtn.disabled = false;
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
-    if (unlockBtn) {
-      unlockBtn.disabled = true;
-      unlockBtn.textContent = "Sonido activado";
-    }
+    mediaRecorder.onstop = async () => {
+      userText.textContent = "";
 
-    const lastBotMessage = botText.textContent.trim();
-    if (lastBotMessage) {
-      // No forzamos TTS aquí porque tu TTS depende de base64 del servidor
-      // y no lo tenemos guardado; simplemente dejamos el texto visible.
-    }
-  }
-
- window.addEventListener("DOMContentLoaded", () => {
-  if (unlockBtn) unlockBtn.onclick = unlockAudio;
-});
-
-  /* ----------------------------------------------------------
-     HISTORIAL LOCAL
-  ----------------------------------------------------------- */
-  function getTodayKey() {
-    return "history_" + new Date().toISOString().split("T")[0];
-  }
-
-  function saveHistory(userMsg, botMsg) {
-    const key = getTodayKey();
-    let h = JSON.parse(localStorage.getItem(key) || "[]");
-
-    h.push({ user: userMsg, bot: botMsg });
-    if (h.length > 5) h = h.slice(-5);
-
-    localStorage.setItem(key, JSON.stringify(h));
-  }
-
-  function loadLastHistory() {
-    const key = getTodayKey();
-    const h = JSON.parse(localStorage.getItem(key) || "[]");
-    if (h.length > 0) {
-      const last = h[h.length - 1];
-      userText.textContent = last.user;
-      botText.textContent = last.bot;
-    }
-  }
-
-  /* ----------------------------------------------------------
-     FORMATEAR TIEMPO
-  ----------------------------------------------------------- */
-  function formatTime(seconds) {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-  }
-
-  /* ----------------------------------------------------------
-     BOTÓN HABLAR — DETECCIÓN DE SILENCIO + LIBERACIÓN MICRO
-  ----------------------------------------------------------- */
-  startBtn.onclick = async () => {
-    userText.textContent = "(Listening...)";
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      let mimeType = null;
-      if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
-      else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
-
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-      const chunks = [];
-
-      recorder.ondataavailable = e => chunks.push(e.data);
-
-      recorder.onstop = async () => {
-        // 🔥 LIBERAR MICRO Y AUDIOCONTEXT
-        try {
-          stream.getTracks().forEach(t => t.stop());
-          if (audioContext && audioContext.state !== "closed") {
-            await audioContext.close();
-          }
-        } catch (e) {
-          console.warn("Error liberando audio:", e);
+      // Liberar recursos de audio
+      try {
+        if (audioContext && audioContext.state !== "closed") {
+          await audioContext.close();
         }
+        audioContext = null;
+        // No paramos mediaStream aquí para mantener el comportamiento
+        // antiguo (reutilizar stream). Si quieres liberar el micro
+        // totalmente, descomenta lo siguiente:
+        // mediaStream.getTracks().forEach(t => t.stop());
+        // mediaStream = null;
+      } catch (e) {}
 
-        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      const formData  = new FormData();
+      formData.append("audio", audioBlob, "audio.webm");
 
-        const formData = new FormData();
-        formData.append("audio", blob, "audio.webm");
+      const sttRes  = await fetch(API_BASE + "/stt", {
+        method: "POST",
+        body: formData
+      });
 
-        const sttRes = await fetch(API_BASE + "/stt", {
-          method: "POST",
-          body: formData
-        });
+      const sttData = await sttRes.json();
+      const transcript = sttData.text || "";
+      userText.textContent = transcript;
 
-        const sttData = await sttRes.json();
-        const transcript = sttData.text || "";
-        userText.textContent = transcript;
+      // Historial: últimas 3
+      const key        = getTodayKey();
+      const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
+      const last3       = fullHistory.slice(-3);
 
-        sendToChatbot(transcript);
-      };
-
-      // --- DETECCIÓN DE SILENCIO ---
-      audioContext = new AudioContext();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      source.connect(analyser);
-
-      let silenceStart = Date.now();
-      const SILENCE_THRESHOLD = 0.01;
-      const SILENCE_DURATION = 1500;
-
-      function checkSilence() {
-        const data = new Uint8Array(analyser.fftSize);
-        analyser.getByteTimeDomainData(data);
-
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          const v = (data[i] - 128) / 128;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / data.length);
-
-        if (rms < SILENCE_THRESHOLD) {
-          if (Date.now() - silenceStart > SILENCE_DURATION) {
-            recorder.stop();
-            return;
-          }
-        } else {
-          silenceStart = Date.now();
-        }
-
-        requestAnimationFrame(checkSilence);
-      }
-
-      recorder.start();
-      checkSilence();
-
-    } catch (err) {
-      console.error("Microphone error:", err);
-      userText.textContent = "Microphone error";
-    }
-  };
-
-  /* ----------------------------------------------------------
-     ENVIAR TEXTO AL CHATBOT
-  ----------------------------------------------------------- */
-  async function sendToChatbot(message) {
-    const key = getTodayKey();
-    const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
-    const last3 = fullHistory.slice(-3);
-
-    const res = await fetch(API_BASE + "/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        history: last3,
-        firstname: "Student",
-        lastname: "",
-        userId: "browser_user",
-        email: null
-      })
-    });
-
-    const data = await res.json();
-    const reply = data.reply || "Error";
-    botText.textContent = reply;
-
-    saveHistory(message, reply);
-
-    const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
-    timeSpent.textContent = formatTime(remaining);
-    timeRow.style.display = "block";
-
-    playAudio(reply, data.audio);
-  }
-
-  /* ----------------------------------------------------------
-     REPRODUCIR AUDIO TTS
-  ----------------------------------------------------------- */
-  function playAudio(text, base64Audio) {
-    if (!base64Audio) return;
-
-    const audio = new Audio("data:audio/mp3;base64," + base64Audio);
-
-    audio.onplay = () => {
-      avatar.src = "teachergif2.gif";
-    };
-
-    audio.onended = () => {
-      avatar.src = "avatarprofemujer2.jpg";
-
-      fetch(API_BASE + "/ttsTime", {
+      const chatRes = await fetch(API_BASE + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: "browser_user",
-          seconds: audio.duration
+          message:   transcript,
+          history:   last3,
+          firstname: "Student",
+          lastname:  "",
+          userId:    "browser_user",
+          email:     null
         })
-      })
-      .then(r => r.json())
-      .then(d => {
-        const remaining = Math.max(300 - d.total, 0);
-        timeSpent.textContent = formatTime(remaining);
       });
+
+      const data     = await chatRes.json();
+      const response = data.reply || "Error en la respuesta";
+      botText.textContent = response;
+
+      saveHistory(transcript, response);
+
+      const consumed  = data.timeSpentToday || 0;
+      const remaining = Math.max(300 - consumed, 0);
+
+      timeSpent.textContent   = formatTime(remaining);
+      timeRow.style.display   = "block";
+
+      // Reproducir audio TTS del servidor (si viene)
+      if (data.audio) {
+        playAudio(response, data.audio);
+      }
     };
 
-    audio.play();
-  }
+    // --- DETECCIÓN DE SILENCIO (exacta de tu script antiguo) ---
+    audioContext = new AudioContext();
+    const source   = audioContext.createMediaStreamSource(mediaStream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
 
-  /* ----------------------------------------------------------
-     SALUDO INICIAL
-  ----------------------------------------------------------- */
-  window.addEventListener("load", () => {
-    const todayKey = getTodayKey();
-    const last = JSON.parse(localStorage.getItem(todayKey) || "[]");
+    let silenceStart = Date.now();
+    const SILENCE_THRESHOLD = 0.01;
+    const SILENCE_DURATION  = 1500;
 
-    if (last.length > 0) {
-      loadLastHistory();
-    } else {
-      const now = new Date();
-      const dateStr = now.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric"
-      });
+    function checkSilence() {
+      const data = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(data);
 
-      const greeting = `Hello! I'm your virtual English tutor. Welcome to today's practice, ${dateStr}.`;
-      botText.textContent = greeting;
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / data.length);
 
-      saveHistory("", greeting);
+      if (rms < SILENCE_THRESHOLD) {
+        if (Date.now() - silenceStart > SILENCE_DURATION) {
+          mediaRecorder.stop();
+          return;
+        }
+      } else {
+        silenceStart = Date.now();
+      }
+
+      requestAnimationFrame(checkSilence);
     }
-  });
-  </script>
+
+    mediaRecorder.start();
+    userText.textContent = "(Escuchando...)";
+    checkSilence();
+
+  } catch (err) {
+    console.error("Microphone error:", err);
+    userText.textContent = "Microphone error";
+  }
+};
+
+/* ----------------------------------------------------------
+   ENVIAR TEXTO AL CHATBOT (ya integrado arriba en onstop)
+----------------------------------------------------------- */
+// sendToChatbot ya no hace falta como función separada en este patrón,
+// porque estamos siguiendo tu flujo antiguo: STT → CHAT en la misma onstop.
+
+/* ----------------------------------------------------------
+   REPRODUCIR AUDIO TTS (igual que tenías en el HTML nuevo)
+----------------------------------------------------------- */
+function playAudio(text, base64Audio) {
+  if (!base64Audio) return;
+
+  const audio = new Audio("data:audio/mp3;base64," + base64Audio);
+
+  audio.onplay = () => {
+    avatar.src = "teachergif2.gif";
+  };
+
+  audio.onended = () => {
+    avatar.src = "avatarprofemujer2.jpg";
+
+    fetch(API_BASE + "/ttsTime", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: "browser_user",
+        seconds: audio.duration
+      })
+    })
+    .then(r => r.json())
+    .then(d => {
+      const remaining = Math.max(300 - d.total, 0);
+      timeSpent.textContent = formatTime(remaining);
+    });
+  };
+
+  audio.play();
+}
+
+/* ----------------------------------------------------------
+   SALUDO INICIAL
+----------------------------------------------------------- */
+window.addEventListener("load", () => {
+  const todayKey = getTodayKey();
+  const last = JSON.parse(localStorage.getItem(todayKey) || "[]");
+
+  if (last.length > 0) {
+    loadLastHistory();
+  } else {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric"
+    });
+
+    const greeting = `Hello! I'm your virtual English tutor. Welcome to today's practice, ${dateStr}.`;
+    botText.textContent = greeting;
+
+    saveHistory("", greeting);
+  }
+});
+</script>
 </body>
 </html>
