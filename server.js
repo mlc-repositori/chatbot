@@ -49,6 +49,9 @@ app.post("/stt", upload.single("audio"), async (req, res) => {
     });
     formData.append("model", "whisper-1");
     formData.append("language", "en");
+    formData.append("task", "transcribe");
+    formData.append("temperature", "0");
+
 
     const openaiRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
