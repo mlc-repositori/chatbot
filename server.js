@@ -34,7 +34,7 @@ function getToday() {
 const upload = multer({ dest: "uploads/" });
 
 // ============================================================
-// 🔊 RUTA STT — Whisper (OpenAI) — AHORA ACEPTA MP4 + WEBM
+// 🔊 RUTA STT — Whisper (OpenAI) — CORREGIDA
 // ============================================================
 app.post("/stt", upload.single("audio"), async (req, res) => {
   try {
@@ -43,7 +43,10 @@ app.post("/stt", upload.single("audio"), async (req, res) => {
     const filePath = req.file.path;
 
     const formData = new FormData();
-    formData.append("file", fs.createReadStream(filePath));
+    formData.append("file", fs.createReadStream(filePath), {
+      filename: "audio.webm",
+      contentType: "audio/webm"
+    });
     formData.append("model", "whisper-1");
     formData.append("language", "en");
 
