@@ -87,6 +87,11 @@ const timeSpent = document.getElementById("timeSpent");
 const timeRow = document.getElementById("timeRow");
 
 /* ----------------------------------------------------------
+   LOGS DE DEPURACIÓN
+----------------------------------------------------------- */
+console.log(">>> HTML cargado correctamente");
+
+/* ----------------------------------------------------------
    HISTORIAL LOCAL
 ----------------------------------------------------------- */
 function getTodayKey() {
@@ -123,61 +128,80 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   BOTÓN HABLAR — VERSIÓN DEFINITIVA
-   MediaRecorder.start() está DIRECTAMENTE dentro del click
+   BOTÓN HABLAR — TU FLUJO ORIGINAL + LOGS
 ----------------------------------------------------------- */
 document.getElementById("startBtn").onclick = async () => {
+  console.log(">>> CLICK en Speak");
   userText.textContent = "(Listening...)";
 
   try {
-    // 1) Pedir permiso al micro
+    console.log(">>> Pidiendo permiso al micro...");
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log(">>> Permiso concedido, stream OK:", stream);
 
-    // 2) Detectar formato soportado
     let mimeType = null;
     if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
     else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
 
-    // 3) Crear MediaRecorder
+    console.log(">>> MIME elegido:", mimeType);
+
     const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
     const chunks = [];
 
-    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstart = () => console.log(">>> recorder STARTED");
+    recorder.onstop = () => console.log(">>> recorder STOPPED");
+    recorder.onerror = e => console.error(">>> recorder ERROR:", e);
+
+    recorder.ondataavailable = e => {
+      console.log(">>> DATA AVAILABLE:", e.data.size);
+      chunks.push(e.data);
+    };
+
+    console.log(">>> Estado antes de start:", recorder.state);
+    recorder.start();
+    console.log(">>> recorder.start() ejecutado");
+
+    setTimeout(() => {
+      console.log(">>> Ejecutando recorder.stop()");
+      recorder.stop();
+    }, 3000);
 
     recorder.onstop = async () => {
+      console.log(">>> STOP recibido, chunks:", chunks);
+
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+      console.log(">>> Blob final tamaño:", blob.size);
 
       const formData = new FormData();
       formData.append("audio", blob, "audio");
 
+      console.log(">>> Enviando a /stt...");
       const sttRes = await fetch(API_BASE + "/stt", {
         method: "POST",
         body: formData
       });
 
       const sttData = await sttRes.json();
-      const transcript = sttData.text || "";
+      console.log(">>> Respuesta /stt:", sttData);
 
+      const transcript = sttData.text || "";
       userText.textContent = transcript;
+
       sendToChatbot(transcript);
     };
 
-    // 4) GRABAR (Edge, iPhone y Android exigen que esté aquí)
-    recorder.start();
-
-    // 5) Parar a los 3 segundos
-    setTimeout(() => recorder.stop(), 3000);
-
   } catch (err) {
-    console.error(err);
+    console.error(">>> ERROR en grabación:", err);
     userText.textContent = "Microphone error";
   }
 };
 
 /* ----------------------------------------------------------
-   ENVIAR TEXTO AL CHATBOT
+   ENVIAR TEXTO AL CHATBOT — LOGS AÑADIDOS
 ----------------------------------------------------------- */
 async function sendToChatbot(message) {
+  console.log(">>> Enviando mensaje al chatbot:", message);
+
   const key = getTodayKey();
   const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
   const last3 = fullHistory.slice(-3);
@@ -196,6 +220,7 @@ async function sendToChatbot(message) {
   });
 
   const data = await res.json();
+  console.log(">>> Respuesta /chat:", data);
 
   const reply = data.reply || "Error";
   botText.textContent = reply;
@@ -210,18 +235,22 @@ async function sendToChatbot(message) {
 }
 
 /* ----------------------------------------------------------
-   REPRODUCIR AUDIO TTS + ANIMAR AVATAR
+   REPRODUCIR AUDIO TTS — LOGS AÑADIDOS
 ----------------------------------------------------------- */
 function playAudio(text, base64Audio) {
+  console.log(">>> Reproduciendo TTS, tamaño base64:", base64Audio?.length);
+
   if (!base64Audio) return;
 
   const audio = new Audio("data:audio/mp3;base64," + base64Audio);
 
   audio.onplay = () => {
+    console.log(">>> TTS PLAY");
     avatar.src = "avatar-talking.gif";
   };
 
   audio.onended = () => {
+    console.log(">>> TTS END");
     avatar.src = "avatar-static.png";
 
     fetch(API_BASE + "/ttsTime", {
@@ -234,6 +263,7 @@ function playAudio(text, base64Audio) {
     })
     .then(r => r.json())
     .then(d => {
+      console.log(">>> Respuesta /ttsTime:", d);
       const remaining = Math.max(300 - d.total, 0);
       timeSpent.textContent = formatTime(remaining);
     });
@@ -246,6 +276,8 @@ function playAudio(text, base64Audio) {
    SALUDO INICIAL
 ----------------------------------------------------------- */
 window.addEventListener("load", () => {
+  console.log(">>> Página cargada, iniciando saludo");
+
   const todayKey = getTodayKey();
   const last = JSON.parse(localStorage.getItem(todayKey) || "[]");
 
