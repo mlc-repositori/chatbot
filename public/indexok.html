@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Virtual English Tutor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #F8D763;
+      margin: 0;
+      padding: 20px;
+      font-size: clamp(16px, 2.8vw, 20px);
+    }
+
+    .chatbot-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .chatbot-container img {
+      width: 100%;
+      max-width: 250px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .chatbot-container h3 {
+      font-size: clamp(18px, 3.4vw, 24px);
+      margin: 0 0 10px 0;
+    }
+
+    button {
+      font-size: clamp(16px, 3vw, 20px);
+      padding: 10px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    p {
+      margin: 6px 0;
+    }
+
+    #userText, #botText {
+      display: inline-block;
+      background: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      max-width: 90%;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="chatbot-container">
+  <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
+
+  <div>
+    <h3>Virtual English Tutor</h3>
+
+    <button id="startBtn">🎤 Speak</button>
+
+    <p><strong>You:</strong> <span id="userText"></span></p>
+    <p><strong>Teacher:</strong> <span id="botText"></span></p>
+
+    <p id="timeRow" style="display:none;">
+      <strong>Time remaining:</strong> <span id="timeSpent"></span>
+    </p>
+  </div>
+</div>
+
+<script>
+const API_BASE = "https://chatbot-xzhi.onrender.com";
+
+const avatar = document.getElementById("avatar");
+const userText = document.getElementById("userText");
+const botText = document.getElementById("botText");
+const timeSpent = document.getElementById("timeSpent");
+const timeRow = document.getElementById("timeRow");
+
+function getTodayKey() {
+  return "history_" + new Date().toISOString().split("T")[0];
+}
+
+function saveHistory(userMsg, botMsg) {
+  const key = getTodayKey();
+  let h = JSON.parse(localStorage.getItem(key) || "[]");
+  h.push({ user: userMsg, bot: botMsg });
+  if (h.length > 5) h = h.slice(-5);
+  localStorage.setItem(key, JSON.stringify(h));
+}
+
+function loadLastHistory() {
+  const key = getTodayKey();
+  const h = JSON.parse(localStorage.getItem(key) || "[]");
+  if (h.length > 0) {
+    const last = h[h.length - 1];
+    userText.textContent = last.user;
+    botText.textContent = last.bot;
+  }
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+/* ----------------------------------------------------------
+   BOTÓN HABLAR — DETECCIÓN DE SILENCIO INTEGRADA
+----------------------------------------------------------- */
+document.getElementById("startBtn").onclick = async () => {
+  userText.textContent = "(Listening...)";
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    let mimeType = null;
+    if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
+    else if (MediaRecorder.isTypeSupported("audio/mp4")) mimeType = "audio/mp4";
+
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    const chunks = [];
+
+    recorder.ondataavailable = e => chunks.push(e.data);
+
+    recorder.onstop = async () => {
+
+  // 🔥 LIBERAR MICRO Y RECURSOS DE AUDIO
+  try {
+    stream.getTracks().forEach(t => t.stop());
+    if (audioContext && audioContext.state !== "closed") {
+      audioContext.close();
+    }
+  } catch (e) {
+    console.warn("No se pudo cerrar el audioContext o el stream:", e);
+  }
+
+  // --- PROCESAR AUDIO COMO SIEMPRE ---
+  const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+
+  const formData = new FormData();
+  formData.append("audio", blob, "audio.webm");
+
+  const sttRes = await fetch(API_BASE + "/stt", {
+    method: "POST",
+    body: formData
+  });
+
+  const sttData = await sttRes.json();
+  const transcript = sttData.text || "";
+  userText.textContent = transcript;
+
+  sendToChatbot(transcript);
+};
+
+
+    // --- DETECCIÓN DE SILENCIO ---
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+
+    let silenceStart = Date.now();
+    const SILENCE_THRESHOLD = 0.01;
+    const SILENCE_DURATION = 1500;
+
+    function checkSilence() {
+      const data = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(data);
+
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / data.length);
+
+      if (rms < SILENCE_THRESHOLD) {
+        if (Date.now() - silenceStart > SILENCE_DURATION) {
+          recorder.stop();
+          return;
+        }
+      } else {
+        silenceStart = Date.now();
+      }
+
+      requestAnimationFrame(checkSilence);
+    }
+
+    recorder.start();
+    checkSilence();
+
+  } catch (err) {
+    userText.textContent = "Microphone error";
+  }
+};
+
+/* ----------------------------------------------------------
+   ENVIAR TEXTO AL CHATBOT
+----------------------------------------------------------- */
+async function sendToChatbot(message) {
+  const key = getTodayKey();
+  const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
+  const last3 = fullHistory.slice(-3);
+
+  const res = await fetch(API_BASE + "/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message,
+      history: last3,
+      firstname: "Student",
+      lastname: "",
+      userId: "browser_user",
+      email: null
+    })
+  });
+
+  const data = await res.json();
+  const reply = data.reply || "Error";
+  botText.textContent = reply;
+
+  saveHistory(message, reply);
+
+  const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
+  timeSpent.textContent = formatTime(remaining);
+  timeRow.style.display = "block";
+
+  playAudio(reply, data.audio);
+}
+
+/* ----------------------------------------------------------
+   REPRODUCIR AUDIO TTS
+----------------------------------------------------------- */
+function playAudio(text, base64Audio) {
+  if (!base64Audio) return;
+
+  const audio = new Audio("data:audio/mp3;base64," + base64Audio);
+
+  audio.onplay = () => {
+    avatar.src = "teachergif2.gif";
+  };
+
+  audio.onended = () => {
+    avatar.src = "avatarprofemujer2.jpg";
+
+    fetch(API_BASE + "/ttsTime", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: "browser_user",
+        seconds: audio.duration
+      })
+    })
+    .then(r => r.json())
+    .then(d => {
+      const remaining = Math.max(300 - d.total, 0);
+      timeSpent.textContent = formatTime(remaining);
+    });
+  };
+
+  audio.play();
+}
+
+/* ----------------------------------------------------------
+   SALUDO INICIAL
+----------------------------------------------------------- */
+window.addEventListener("load", () => {
+  const todayKey = getTodayKey();
+  const last = JSON.parse(localStorage.getItem(todayKey) || "[]");
+
+  if (last.length > 0) {
+    loadLastHistory();
+  } else {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric"
+    });
+
+    const greeting = `Hello! I'm your virtual English tutor. Welcome to today's practice, ${dateStr}.`;
+    botText.textContent = greeting;
+
+    saveHistory("", greeting);
+  }
+});
+</script>
+
+</body>
+</html>
