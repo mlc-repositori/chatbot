@@ -130,22 +130,35 @@ document.getElementById("startBtn").onclick = async () => {
     recorder.ondataavailable = e => chunks.push(e.data);
 
     recorder.onstop = async () => {
-      const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
 
-      const formData = new FormData();
-      formData.append("audio", blob, "audio.webm");
+  // 🔥 LIBERAR MICRO Y RECURSOS DE AUDIO
+  try {
+    stream.getTracks().forEach(t => t.stop());
+    if (audioContext && audioContext.state !== "closed") {
+      audioContext.close();
+    }
+  } catch (e) {
+    console.warn("No se pudo cerrar el audioContext o el stream:", e);
+  }
 
-      const sttRes = await fetch(API_BASE + "/stt", {
-        method: "POST",
-        body: formData
-      });
+  // --- PROCESAR AUDIO COMO SIEMPRE ---
+  const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
 
-      const sttData = await sttRes.json();
-      const transcript = sttData.text || "";
-      userText.textContent = transcript;
+  const formData = new FormData();
+  formData.append("audio", blob, "audio.webm");
 
-      sendToChatbot(transcript);
-    };
+  const sttRes = await fetch(API_BASE + "/stt", {
+    method: "POST",
+    body: formData
+  });
+
+  const sttData = await sttRes.json();
+  const transcript = sttData.text || "";
+  userText.textContent = transcript;
+
+  sendToChatbot(transcript);
+};
+
 
     // --- DETECCIÓN DE SILENCIO ---
     const audioContext = new AudioContext();
