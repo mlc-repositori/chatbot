@@ -80,7 +80,7 @@
     </div>
   </div>
 
- <script>
+<script>
 /* ----------------------------------------------------------
    CONFIG
 ----------------------------------------------------------- */
@@ -100,12 +100,59 @@ const startBtn  = document.getElementById("startBtn");
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* ----------------------------------------------------------
-   VARIABLES GLOBALES (MISMA IDEA QUE EL SCRIPT ANTIGUO)
+   VARIABLES GLOBALES (MISMO SISTEMA DEL SCRIPT ANTIGUO)
 ----------------------------------------------------------- */
 let mediaRecorder = null;
 let audioChunks   = [];
 let mediaStream   = null;
 let audioContext  = null;
+let audioUnlocked = false;
+
+/* ----------------------------------------------------------
+   MOSTRAR BOTÓN UNLOCK SOLO EN IPHONE
+----------------------------------------------------------- */
+if (isIphone) {
+  unlockBtn.style.display = "inline-block";
+  startBtn.disabled = true;
+} else {
+  startBtn.disabled = false;
+}
+
+/* ----------------------------------------------------------
+   DESBLOQUEO DE AUDIO (VERSIÓN REAL QUE FUNCIONA EN IPHONE)
+----------------------------------------------------------- */
+async function unlockAudio() {
+  if (!isIphone) return;
+  if (audioUnlocked) return;
+
+  try {
+    // 1. Crear AudioContext si no existe
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    // 2. Reanudar AudioContext (obligatorio en iPhone)
+    if (audioContext.state === "suspended") {
+      await audioContext.resume();
+    }
+
+    // 3. Reproducir audio silencioso REAL
+    const silent = new Audio();
+    silent.src =
+      "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
+    await silent.play().catch(() => {});
+  } catch (e) {
+    console.warn("Unlock failed:", e);
+  }
+
+  audioUnlocked = true;
+
+  startBtn.disabled = false;
+  unlockBtn.disabled = true;
+  unlockBtn.textContent = "Sonido activado";
+}
+
+unlockBtn.onclick = unlockAudio;
 
 /* ----------------------------------------------------------
    HISTORIAL
@@ -116,22 +163,19 @@ function getTodayKey() {
 
 function saveHistory(userMsg, botMsg) {
   const key = getTodayKey();
-  let history = JSON.parse(localStorage.getItem(key) || "[]");
+  let h = JSON.parse(localStorage.getItem(key) || "[]");
 
-  history.push({ user: userMsg, bot: botMsg });
-  if (history.length > 5) {
-    history = history.slice(history.length - 5);
-  }
+  h.push({ user: userMsg, bot: botMsg });
+  if (h.length > 5) h = h.slice(-5);
 
-  localStorage.setItem(key, JSON.stringify(history));
+  localStorage.setItem(key, JSON.stringify(h));
 }
 
 function loadLastHistory() {
   const key = getTodayKey();
-  const history = JSON.parse(localStorage.getItem(key) || "[]");
-
-  if (history.length > 0) {
-    const last = history[history.length - 1];
+  const h = JSON.parse(localStorage.getItem(key) || "[]");
+  if (h.length > 0) {
+    const last = h[h.length - 1];
     userText.textContent = last.user;
     botText.textContent  = last.bot;
   }
@@ -147,52 +191,13 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   MOSTRAR BOTÓN UNLOCK SOLO EN IPHONE
------------------------------------------------------------ */
-if (isIphone) {
-  unlockBtn.style.display = "inline-block";
-} else {
-  // En Android/PC el botón Speak se habilita directamente
-  startBtn.disabled = false;
-}
-
-/* ----------------------------------------------------------
-   DESBLOQUEO DE AUDIO (solo iPhone)
-   – Mismo patrón que tu script antiguo
------------------------------------------------------------ */
-let audioUnlocked = false;
-
-function unlockAudio() {
-  if (!isIphone) return;
-  if (audioUnlocked) return;
-
-  const silent = new Audio();
-  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
-  silent.play().catch(() => {});
-
-  audioUnlocked = true;
-
-  startBtn.disabled   = false;
-  unlockBtn.disabled  = true;
-  unlockBtn.textContent = "Sonido activado";
-
-  const lastBotMessage = botText.textContent.trim();
-  // En tu sistema nuevo, el audio del bot viene del servidor (base64),
-  // aquí solo mantenemos el texto: no re-disparamos TTS porque no
-  // guardamos el último audio base64.
-}
-
-unlockBtn.onclick = unlockAudio;
-
-/* ----------------------------------------------------------
-   BOTÓN HABLAR — MISMA LÓGICA QUE EL SCRIPT ANTIGUO
-   (mediaStream global + detección de silencio)
+   BOTÓN HABLAR — MISMO SISTEMA DEL SCRIPT ANTIGUO
 ----------------------------------------------------------- */
 startBtn.onclick = async () => {
   userText.textContent = "(Listening...)";
 
   try {
-    // Igual que en tu código antiguo: reusar mediaStream si existe
+    // Reusar mediaStream como en el script antiguo
     if (!mediaStream) {
       mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     }
@@ -205,17 +210,12 @@ startBtn.onclick = async () => {
     mediaRecorder.onstop = async () => {
       userText.textContent = "";
 
-      // Liberar recursos de audio
+      // Cerrar AudioContext
       try {
         if (audioContext && audioContext.state !== "closed") {
           await audioContext.close();
         }
         audioContext = null;
-        // No paramos mediaStream aquí para mantener el comportamiento
-        // antiguo (reutilizar stream). Si quieres liberar el micro
-        // totalmente, descomenta lo siguiente:
-        // mediaStream.getTracks().forEach(t => t.stop());
-        // mediaStream = null;
       } catch (e) {}
 
       const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
@@ -231,8 +231,8 @@ startBtn.onclick = async () => {
       const transcript = sttData.text || "";
       userText.textContent = transcript;
 
-      // Historial: últimas 3
-      const key        = getTodayKey();
+      // Historial
+      const key         = getTodayKey();
       const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
       const last3       = fullHistory.slice(-3);
 
@@ -258,17 +258,17 @@ startBtn.onclick = async () => {
       const consumed  = data.timeSpentToday || 0;
       const remaining = Math.max(300 - consumed, 0);
 
-      timeSpent.textContent   = formatTime(remaining);
-      timeRow.style.display   = "block";
+      timeSpent.textContent = formatTime(remaining);
+      timeRow.style.display = "block";
 
-      // Reproducir audio TTS del servidor (si viene)
+      // Reproducir TTS si viene
       if (data.audio) {
         playAudio(response, data.audio);
       }
     };
 
-    // --- DETECCIÓN DE SILENCIO (exacta de tu script antiguo) ---
-    audioContext = new AudioContext();
+    // --- DETECCIÓN DE SILENCIO (exacta del script antiguo) ---
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const source   = audioContext.createMediaStreamSource(mediaStream);
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
@@ -312,16 +312,20 @@ startBtn.onclick = async () => {
 };
 
 /* ----------------------------------------------------------
-   ENVIAR TEXTO AL CHATBOT (ya integrado arriba en onstop)
+   REPRODUCIR AUDIO TTS (ADAPTADO PARA IPHONE)
 ----------------------------------------------------------- */
-// sendToChatbot ya no hace falta como función separada en este patrón,
-// porque estamos siguiendo tu flujo antiguo: STT → CHAT en la misma onstop.
-
-/* ----------------------------------------------------------
-   REPRODUCIR AUDIO TTS (igual que tenías en el HTML nuevo)
------------------------------------------------------------ */
-function playAudio(text, base64Audio) {
+async function playAudio(text, base64Audio) {
   if (!base64Audio) return;
+
+  // 🔥 FIX iPhone: asegurar AudioContext activo ANTES de reproducir
+  if (isIphone) {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === "suspended") {
+      await audioContext.resume();
+    }
+  }
 
   const audio = new Audio("data:audio/mp3;base64," + base64Audio);
 
