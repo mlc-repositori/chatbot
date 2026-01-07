@@ -75,6 +75,9 @@
 </div>
 
 <script>
+/* ----------------------------------------------------------
+   CONFIG
+----------------------------------------------------------- */
 const API_BASE = "https://chatbot-xzhi.onrender.com";
 
 const avatar = document.getElementById("avatar");
@@ -83,6 +86,55 @@ const botText = document.getElementById("botText");
 const timeSpent = document.getElementById("timeSpent");
 const timeRow = document.getElementById("timeRow");
 
+/* ----------------------------------------------------------
+   🔍 DETECTAR SI ES IPHONE
+----------------------------------------------------------- */
+const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+/* ----------------------------------------------------------
+   🔊 MOSTRAR BOTÓN SOLO EN IPHONE
+----------------------------------------------------------- */
+if (isIphone) {
+  document.getElementById("unlockBtn").style.display = "inline-block";
+  document.getElementById("startBtn").disabled = true;
+}
+
+/* ----------------------------------------------------------
+   🔊 DESBLOQUEO DE AUDIO (solo iPhone)
+----------------------------------------------------------- */
+let audioUnlocked = false;
+
+async function unlockAudio() {
+  if (!isIphone) return;
+  if (audioUnlocked) return;
+
+  try {
+    const silent = new Audio();
+    silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
+    await silent.play().catch(() => {});
+  } catch (e) {
+    console.warn("Silent audio failed:", e);
+  }
+
+  audioUnlocked = true;
+
+  document.getElementById("startBtn").disabled = false;
+
+  const ub = document.getElementById("unlockBtn");
+  ub.disabled = true;
+  ub.textContent = "Sonido activado";
+
+  const lastBotMessage = botText.textContent.trim();
+  if (lastBotMessage) {
+    setTimeout(() => playAudio(lastBotMessage, null), 150);
+  }
+}
+
+document.getElementById("unlockBtn").onclick = unlockAudio;
+
+/* ----------------------------------------------------------
+   HISTORIAL LOCAL
+----------------------------------------------------------- */
 function getTodayKey() {
   return "history_" + new Date().toISOString().split("T")[0];
 }
@@ -90,8 +142,10 @@ function getTodayKey() {
 function saveHistory(userMsg, botMsg) {
   const key = getTodayKey();
   let h = JSON.parse(localStorage.getItem(key) || "[]");
+
   h.push({ user: userMsg, bot: botMsg });
   if (h.length > 5) h = h.slice(-5);
+
   localStorage.setItem(key, JSON.stringify(h));
 }
 
@@ -105,6 +159,9 @@ function loadLastHistory() {
   }
 }
 
+/* ----------------------------------------------------------
+   FORMATEAR TIEMPO
+----------------------------------------------------------- */
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -112,7 +169,7 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   BOTÓN HABLAR — DETECCIÓN DE SILENCIO INTEGRADA
+   BOTÓN HABLAR — DETECCIÓN DE SILENCIO + LIBERACIÓN MICRO
 ----------------------------------------------------------- */
 document.getElementById("startBtn").onclick = async () => {
   userText.textContent = "(Listening...)";
@@ -131,37 +188,33 @@ document.getElementById("startBtn").onclick = async () => {
 
     recorder.onstop = async () => {
 
-  // 🔥 LIBERAR MICRO Y RECURSOS DE AUDIO
-  try {
-    stream.getTracks().forEach(t => t.stop());
-    if (audioContext && audioContext.state !== "closed") {
-      audioContext.close();
-    }
-  } catch (e) {
-    console.warn("No se pudo cerrar el audioContext o el stream:", e);
-  }
+      // 🔥 LIBERAR MICRO
+      try {
+        stream.getTracks().forEach(t => t.stop());
+        if (audioContext && audioContext.state !== "closed") {
+          audioContext.close();
+        }
+      } catch (e) {}
 
-  // --- PROCESAR AUDIO COMO SIEMPRE ---
-  const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+      const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
 
-  const formData = new FormData();
-  formData.append("audio", blob, "audio.webm");
+      const formData = new FormData();
+      formData.append("audio", blob, "audio.webm");
 
-  const sttRes = await fetch(API_BASE + "/stt", {
-    method: "POST",
-    body: formData
-  });
+      const sttRes = await fetch(API_BASE + "/stt", {
+        method: "POST",
+        body: formData
+      });
 
-  const sttData = await sttRes.json();
-  const transcript = sttData.text || "";
-  userText.textContent = transcript;
+      const sttData = await sttRes.json();
+      const transcript = sttData.text || "";
+      userText.textContent = transcript;
 
-  sendToChatbot(transcript);
-};
-
+      sendToChatbot(transcript);
+    };
 
     // --- DETECCIÓN DE SILENCIO ---
-    const audioContext = new AudioContext();
+    audioContext = new AudioContext();
     const source = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
@@ -293,6 +346,7 @@ window.addEventListener("load", () => {
   }
 });
 </script>
+
 
 </body>
 </html>
