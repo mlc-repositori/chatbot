@@ -1,382 +1,62 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Virtual English Tutor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #F8D763;
-      margin: 0;
-      padding: 20px;
-      font-size: clamp(16px, 2.8vw, 20px);
-    }
+<style>
+  body { padding:20px; font-size:20px; }
+  #unlockBtn, #startBtn {
+    font-size:22px;
+    padding:12px 20px;
+    margin:10px 0;
+    display:block;
+    width:100%;
+  }
+</style>
 
-    .chatbot-container {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .chatbot-container img {
-      width: 100%;
-      max-width: 250px;
-      height: auto;
-      display: block;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    button {
-      font-size: clamp(16px, 3vw, 20px);
-      padding: 10px 16px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      position: relative;
-      z-index: 10; /* 🔥 asegura que el botón es pulsable */
-    }
-
-    #userText, #botText {
-      display: inline-block;
-      background: white;
-      padding: 6px 10px;
-      border-radius: 6px;
-      max-width: 90%;
-    }
-  </style>
 </head>
-
 <body>
-  <div class="chatbot-container">
-    <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
 
-    <div>
-      <h3>Virtual English Tutor</h3>
-
-      <!-- 🔥 Botón visible y pulsable desde el principio -->
-      <button id="unlockBtn">🔊 Activar sonido</button>
-
-      <button id="startBtn" disabled>🎤 Speak</button>
-
-      <p><strong>You:</strong> <span id="userText"></span></p>
-      <p><strong>Teacher:</strong> <span id="botText"></span></p>
-
-      <p id="timeRow" style="display:none;">
-        <strong>Time remaining:</strong> <span id="timeSpent"></span>
-      </p>
-    </div>
-  </div>
+<button id="unlockBtn">🔊 Activar sonido</button>
+<button id="startBtn" disabled>🎤 Speak</button>
 
 <script>
-/* ----------------------------------------------------------
-   CONFIG
------------------------------------------------------------ */
-const API_BASE = "https://chatbot-xzhi.onrender.com";
-
-const avatar    = document.getElementById("avatar");
-const userText  = document.getElementById("userText");
-const botText   = document.getElementById("botText");
-const timeSpent = document.getElementById("timeSpent");
-const timeRow   = document.getElementById("timeRow");
+const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 const unlockBtn = document.getElementById("unlockBtn");
 const startBtn  = document.getElementById("startBtn");
 
-/* ----------------------------------------------------------
-   DETECTAR IPHONE
------------------------------------------------------------ */
-const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-/* ----------------------------------------------------------
-   VARIABLES GLOBALES
------------------------------------------------------------ */
-let mediaRecorder = null;
-let audioChunks   = [];
-let mediaStream   = null;
-let audioContext  = null;
+let audioContext = null;
 let audioUnlocked = false;
 
-/* ----------------------------------------------------------
-   MOSTRAR / OCULTAR BOTÓN
------------------------------------------------------------ */
-if (!isIphone) {
-  unlockBtn.style.display = "none";
-  startBtn.disabled = false;
-}
-
-/* ----------------------------------------------------------
-   DESBLOQUEO DE AUDIO (FUNCIONA EN IPHONE)
------------------------------------------------------------ */
 async function unlockAudio() {
   if (!isIphone) return;
   if (audioUnlocked) return;
 
   try {
-    if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    await audioContext.resume();
 
-    if (audioContext.state === "suspended") {
-      await audioContext.resume();
-    }
-
-    // Audio silencioso
     const silent = new Audio();
-    silent.src =
-      "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
+    silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
     await silent.play().catch(()=>{});
 
-    // Beep WebAudio (desbloqueo real)
     const buffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
     source.connect(audioContext.destination);
     source.start(0);
 
-  } catch (e) {
-    if (!String(e.message).includes("aborted")) {
-      console.warn("Unlock error real:", e);
-    }
+  } catch(e) {
+    console.log("unlock error", e);
   }
 
   audioUnlocked = true;
-
   startBtn.disabled = false;
   unlockBtn.disabled = true;
   unlockBtn.textContent = "Sonido activado";
 }
 
-/* ----------------------------------------------------------
-   EVENTO CLICK (CRÍTICO EN IPHONE)
------------------------------------------------------------ */
-window.addEventListener("DOMContentLoaded", () => {
-  unlockBtn.addEventListener("click", unlockAudio);
-});
-
-/* ----------------------------------------------------------
-   HISTORIAL
------------------------------------------------------------ */
-function getTodayKey() {
-  return "history_" + new Date().toISOString().split("T")[0];
-}
-
-function saveHistory(userMsg, botMsg) {
-  const key = getTodayKey();
-  let h = JSON.parse(localStorage.getItem(key) || "[]");
-
-  h.push({ user: userMsg, bot: botMsg });
-  if (h.length > 5) h = h.slice(-5);
-
-  localStorage.setItem(key, JSON.stringify(h));
-}
-
-function loadLastHistory() {
-  const key = getTodayKey();
-  const h = JSON.parse(localStorage.getItem(key) || "[]");
-  if (h.length > 0) {
-    const last = h[h.length - 1];
-    userText.textContent = last.user;
-    botText.textContent  = last.bot;
-  }
-}
-
-/* ----------------------------------------------------------
-   FORMATEAR TIEMPO
------------------------------------------------------------ */
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-}
-
-/* ----------------------------------------------------------
-   BOTÓN HABLAR — DETECCIÓN DE SILENCIO
------------------------------------------------------------ */
-startBtn.onclick = async () => {
-  userText.textContent = "(Listening...)";
-
-  try {
-    if (!mediaStream) {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    }
-
-    mediaRecorder = new MediaRecorder(mediaStream);
-    audioChunks   = [];
-
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
-    mediaRecorder.onstop = async () => {
-      userText.textContent = "";
-
-      try {
-        if (audioContext && audioContext.state !== "closed") {
-          await audioContext.close();
-        }
-        audioContext = null;
-      } catch (e) {}
-
-      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-      const formData  = new FormData();
-      formData.append("audio", audioBlob, "audio.webm");
-
-      const sttRes  = await fetch(API_BASE + "/stt", {
-        method: "POST",
-        body: formData
-      });
-
-      const sttData = await sttRes.json();
-      const transcript = sttData.text || "";
-      userText.textContent = transcript;
-
-      const key         = getTodayKey();
-      const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
-      const last3       = fullHistory.slice(-3);
-
-      const chatRes = await fetch(API_BASE + "/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message:   transcript,
-          history:   last3,
-          firstname: "Student",
-          lastname:  "",
-          userId:    "browser_user",
-          email:     null
-        })
-      });
-
-      const data     = await chatRes.json();
-      const response = data.reply || "Error en la respuesta";
-      botText.textContent = response;
-
-      saveHistory(transcript, response);
-
-      const consumed  = data.timeSpentToday || 0;
-      const remaining = Math.max(300 - consumed, 0);
-
-      timeSpent.textContent = formatTime(remaining);
-      timeRow.style.display = "block";
-
-      if (data.audio) {
-        playAudio(response, data.audio);
-      }
-    };
-
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const source   = audioContext.createMediaStreamSource(mediaStream);
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-    source.connect(analyser);
-
-    let silenceStart = Date.now();
-    const SILENCE_THRESHOLD = 0.01;
-    const SILENCE_DURATION  = 1500;
-
-    function checkSilence() {
-      const data = new Uint8Array(analyser.fftSize);
-      analyser.getByteTimeDomainData(data);
-
-      let sum = 0;
-      for (let i = 0; i < data.length; i++) {
-        const v = (data[i] - 128) / 128;
-        sum += v * v;
-      }
-      const rms = Math.sqrt(sum / data.length);
-
-      if (rms < SILENCE_THRESHOLD) {
-        if (Date.now() - silenceStart > SILENCE_DURATION) {
-          mediaRecorder.stop();
-          return;
-        }
-      } else {
-        silenceStart = Date.now();
-      }
-
-      requestAnimationFrame(checkSilence);
-    }
-
-    mediaRecorder.start();
-    userText.textContent = "(Escuchando...)";
-    checkSilence();
-
-  } catch (err) {
-    console.error("Microphone error:", err);
-    userText.textContent = "Microphone error";
-  }
-};
-
-/* ----------------------------------------------------------
-   REPRODUCIR AUDIO TTS (FUNCIONA EN IPHONE)
------------------------------------------------------------ */
-async function playAudio(text, base64Audio) {
-  if (!base64Audio) return;
-
-  if (isIphone) {
-    if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioContext.state === "suspended") {
-      await audioContext.resume();
-    }
-  }
-
-  const audio = new Audio("data:audio/mp3;base64," + base64Audio);
-
-  audio.onplay = () => {
-    avatar.src = "teachergif2.gif";
-  };
-
-  audio.onended = () => {
-    avatar.src = "avatarprofemujer2.jpg";
-
-    fetch(API_BASE + "/ttsTime", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: "browser_user",
-        seconds: audio.duration
-      })
-    })
-    .then(r => r.json())
-    .then(d => {
-      const remaining = Math.max(300 - d.total, 0);
-      timeSpent.textContent = formatTime(remaining);
-    });
-  };
-
-  try {
-    await audio.play();
-  } catch (err) {
-    console.warn("audio.play() ERROR:", err.message);
-  }
-}
-
-/* ----------------------------------------------------------
-   SALUDO INICIAL
------------------------------------------------------------ */
-window.addEventListener("load", () => {
-  const todayKey = getTodayKey();
-  const last = JSON.parse(localStorage.getItem(todayKey) || "[]");
-
-  if (last.length > 0) {
-    loadLastHistory();
-  } else {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric"
-    });
-
-    const greeting = `Hello! I'm your virtual English tutor. Welcome to today's practice, ${dateStr}.`;
-    botText.textContent = greeting;
-
-    saveHistory("", greeting);
-  }
-});
+unlockBtn.addEventListener("click", unlockAudio);
 </script>
 
 </body>
