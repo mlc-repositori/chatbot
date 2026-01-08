@@ -29,20 +29,13 @@
       margin: 0 auto;
     }
 
-    .chatbot-container h3 {
-      font-size: clamp(18px, 3.4vw, 24px);
-      margin: 0 0 10px 0;
-    }
-
     button {
       font-size: clamp(16px, 3vw, 20px);
       padding: 10px 16px;
       margin-bottom: 10px;
       cursor: pointer;
-    }
-
-    p {
-      margin: 6px 0;
+      position: relative;
+      z-index: 9999; /* 🔥 asegura que el botón es pulsable */
     }
 
     #userText, #botText {
@@ -62,8 +55,8 @@
     <div>
       <h3>Virtual English Tutor</h3>
 
-      <!-- Botón de desbloqueo de sonido SOLO iPhone -->
-      <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
+      <!-- 🔥 Botón visible y pulsable desde el principio -->
+      <button id="unlockBtn">🔊 Activar sonido</button>
 
       <button id="startBtn" disabled>🎤 Speak</button>
 
@@ -105,12 +98,10 @@ let audioContext  = null;
 let audioUnlocked = false;
 
 /* ----------------------------------------------------------
-   MOSTRAR BOTÓN UNLOCK SOLO EN IPHONE
+   MOSTRAR / OCULTAR BOTÓN
 ----------------------------------------------------------- */
-if (isIphone) {
-  unlockBtn.style.display = "inline-block";
-  startBtn.disabled = true;
-} else {
+if (!isIphone) {
+  unlockBtn.style.display = "none";
   startBtn.disabled = false;
 }
 
@@ -130,11 +121,13 @@ async function unlockAudio() {
       await audioContext.resume();
     }
 
+    // Audio silencioso
     const silent = new Audio();
     silent.src =
       "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
-    await silent.play();
+    await silent.play().catch(()=>{});
 
+    // Beep WebAudio (desbloqueo real)
     const buffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
@@ -142,8 +135,10 @@ async function unlockAudio() {
     source.start(0);
 
   } catch (e) {
-    alert("Unlock error: " + e.message);
-    return;
+    // iOS aborta si la pestaña vuelve del background → ignorar
+    if (!String(e.message).includes("aborted")) {
+      console.warn("Unlock error real:", e);
+    }
   }
 
   audioUnlocked = true;
@@ -153,8 +148,12 @@ async function unlockAudio() {
   unlockBtn.textContent = "Sonido activado";
 }
 
+/* ----------------------------------------------------------
+   EVENTOS TÁCTILES (CRÍTICO EN IPHONE)
+----------------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
-  unlockBtn.onclick = unlockAudio;
+  unlockBtn.addEventListener("touchstart", unlockAudio);
+  unlockBtn.addEventListener("click", unlockAudio);
 });
 
 /* ----------------------------------------------------------
@@ -351,7 +350,7 @@ async function playAudio(text, base64Audio) {
   try {
     await audio.play();
   } catch (err) {
-    alert("audio.play() ERROR: " + err.message);
+    console.warn("audio.play() ERROR:", err.message);
   }
 }
 
