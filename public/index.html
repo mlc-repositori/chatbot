@@ -256,6 +256,7 @@ startBtn.onclick = async () => {
     });
 
     const data = await chatRes.json();
+    console.log("AUDIO LENGTH:", data.audio ? data.audio.length : "NO AUDIO");
     const response = data.reply || "Error";
     botText.textContent = response;
 
