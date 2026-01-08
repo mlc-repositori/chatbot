@@ -61,7 +61,12 @@
 
 <script>
 /* ----------------------------------------------------------
-   FIX CRÍTICO PARA IPHONE — NO USAR disabled EN HTML
+   DETECTAR IPHONE
+----------------------------------------------------------- */
+const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+/* ----------------------------------------------------------
+   FIX: NO disabled en HTML → deshabilitar solo con JS
 ----------------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
   if (isIphone) {
@@ -73,11 +78,6 @@ window.addEventListener("DOMContentLoaded", () => {
     startBtn.disabled = false;
   }
 });
-
-/* ----------------------------------------------------------
-   DETECTAR IPHONE
------------------------------------------------------------ */
-const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* ----------------------------------------------------------
    ESPERAR VOCES
@@ -167,6 +167,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let mediaStream = null;
 let audioContext = null;
+let ttsContext = null; // 🔥 CONTEXTO PERSISTENTE PARA TTS
 
 const userText = document.getElementById("userText");
 const botText = document.getElementById("botText");
@@ -256,7 +257,6 @@ startBtn.onclick = async () => {
     });
 
     const data = await chatRes.json();
-    console.log("AUDIO LENGTH:", data.audio ? data.audio.length : "NO AUDIO");
     const response = data.reply || "Error";
     botText.textContent = response;
 
@@ -314,37 +314,53 @@ startBtn.onclick = async () => {
 };
 
 /* ----------------------------------------------------------
-   TTS BACKEND
+   TTS BACKEND — WebAudio (FUNCIONA EN IPHONE)
 ----------------------------------------------------------- */
-function playBackendTTS(text, base64Audio) {
-  const audio = new Audio("data:audio/mp3;base64," + base64Audio);
-  let ttsStart = 0;
+async function playBackendTTS(text, base64Audio) {
+  try {
+    if (!ttsContext) {
+      ttsContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (ttsContext.state === "suspended") {
+      await ttsContext.resume();
+    }
 
-  audio.onplay = () => {
-    ttsStart = Date.now();
+    const arrayBuffer = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0)).buffer;
+    const audioBuffer = await ttsContext.decodeAudioData(arrayBuffer);
+
+    const source = ttsContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(ttsContext.destination);
+
     avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4248/mod_resource/content/2/teachergif2.gif";
-  };
 
-  audio.onended = () => {
-    const ttsDuration = (Date.now() - ttsStart) / 1000;
-    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg";
+    const ttsStart = Date.now();
 
-    fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: "browser_user",
-        seconds: ttsDuration
+    source.onended = () => {
+      const ttsDuration = (Date.now() - ttsStart) / 1000;
+      avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg";
+
+      fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: "browser_user",
+          seconds: ttsDuration
+        })
       })
-    })
-    .then(r => r.json())
-    .then(d => {
-      const remaining = Math.max(300 - d.total, 0);
-      timeSpent.textContent = formatTime(remaining);
-    });
-  };
+      .then(r => r.json())
+      .then(d => {
+        const remaining = Math.max(300 - d.total, 0);
+        timeSpent.textContent = formatTime(remaining);
+      });
+    };
 
-  audio.play().catch(() => speakWithAvatar(text));
+    source.start(0);
+
+  } catch (err) {
+    console.warn("Fallo TTS backend, usando fallback:", err);
+    speakWithAvatar(text);
+  }
 }
 
 /* ----------------------------------------------------------
