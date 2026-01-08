@@ -64,12 +64,8 @@
 
       <!-- Botón de desbloqueo de sonido SOLO iPhone -->
       <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
-<button id="startBtn" disabled>🎤 Speak</button>
 
-      
-     // <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
-
-      // <button id="startBtn">🎤 Speak</button>
+      <button id="startBtn" disabled>🎤 Speak</button>
 
       <p><strong>You:</strong> <span id="userText"></span></p>
       <p><strong>Teacher:</strong> <span id="botText"></span></p>
@@ -100,7 +96,7 @@ const startBtn  = document.getElementById("startBtn");
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* ----------------------------------------------------------
-   VARIABLES GLOBALES (MISMO SISTEMA DEL SCRIPT ANTIGUO)
+   VARIABLES GLOBALES
 ----------------------------------------------------------- */
 let mediaRecorder = null;
 let audioChunks   = [];
@@ -119,30 +115,35 @@ if (isIphone) {
 }
 
 /* ----------------------------------------------------------
-   DESBLOQUEO DE AUDIO (VERSIÓN REAL QUE FUNCIONA EN IPHONE)
+   DESBLOQUEO DE AUDIO (FUNCIONA EN IPHONE)
 ----------------------------------------------------------- */
 async function unlockAudio() {
   if (!isIphone) return;
   if (audioUnlocked) return;
 
   try {
-    // 1. Crear AudioContext si no existe
     if (!audioContext) {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    // 2. Reanudar AudioContext (obligatorio en iPhone)
     if (audioContext.state === "suspended") {
       await audioContext.resume();
     }
 
-    // 3. Reproducir audio silencioso REAL
     const silent = new Audio();
     silent.src =
       "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
-    await silent.play().catch(() => {});
+    await silent.play();
+
+    const buffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+    source.start(0);
+
   } catch (e) {
-    console.warn("Unlock failed:", e);
+    alert("Unlock error: " + e.message);
+    return;
   }
 
   audioUnlocked = true;
@@ -152,7 +153,9 @@ async function unlockAudio() {
   unlockBtn.textContent = "Sonido activado";
 }
 
-unlockBtn.onclick = unlockAudio;
+window.addEventListener("DOMContentLoaded", () => {
+  unlockBtn.onclick = unlockAudio;
+});
 
 /* ----------------------------------------------------------
    HISTORIAL
@@ -191,13 +194,12 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   BOTÓN HABLAR — MISMO SISTEMA DEL SCRIPT ANTIGUO
+   BOTÓN HABLAR — DETECCIÓN DE SILENCIO
 ----------------------------------------------------------- */
 startBtn.onclick = async () => {
   userText.textContent = "(Listening...)";
 
   try {
-    // Reusar mediaStream como en el script antiguo
     if (!mediaStream) {
       mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     }
@@ -210,7 +212,6 @@ startBtn.onclick = async () => {
     mediaRecorder.onstop = async () => {
       userText.textContent = "";
 
-      // Cerrar AudioContext
       try {
         if (audioContext && audioContext.state !== "closed") {
           await audioContext.close();
@@ -231,7 +232,6 @@ startBtn.onclick = async () => {
       const transcript = sttData.text || "";
       userText.textContent = transcript;
 
-      // Historial
       const key         = getTodayKey();
       const fullHistory = JSON.parse(localStorage.getItem(key) || "[]");
       const last3       = fullHistory.slice(-3);
@@ -261,13 +261,11 @@ startBtn.onclick = async () => {
       timeSpent.textContent = formatTime(remaining);
       timeRow.style.display = "block";
 
-      // Reproducir TTS si viene
       if (data.audio) {
         playAudio(response, data.audio);
       }
     };
 
-    // --- DETECCIÓN DE SILENCIO (exacta del script antiguo) ---
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const source   = audioContext.createMediaStreamSource(mediaStream);
     const analyser = audioContext.createAnalyser();
@@ -312,28 +310,17 @@ startBtn.onclick = async () => {
 };
 
 /* ----------------------------------------------------------
-   REPRODUCIR AUDIO TTS (ADAPTADO PARA IPHONE)
+   REPRODUCIR AUDIO TTS (FUNCIONA EN IPHONE)
 ----------------------------------------------------------- */
 async function playAudio(text, base64Audio) {
-  if (!base64Audio) {
-    alert("playAudio: NO base64Audio");
-    return;
-  }
+  if (!base64Audio) return;
 
-  alert("playAudio: recibido audio, longitud base64 = " + base64Audio.length);
-
-  // 🔥 iPhone: asegurar AudioContext activo
   if (isIphone) {
     if (!audioContext) {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioContext.state === "suspended") {
-      try {
-        await audioContext.resume();
-        alert("AudioContext reanudado en iPhone");
-      } catch (e) {
-        alert("Error al reanudar AudioContext: " + e.message);
-      }
+      await audioContext.resume();
     }
   }
 
@@ -341,12 +328,10 @@ async function playAudio(text, base64Audio) {
 
   audio.onplay = () => {
     avatar.src = "teachergif2.gif";
-    alert("onplay: el audio ha empezado (evento lanzado)");
   };
 
   audio.onended = () => {
     avatar.src = "avatarprofemujer2.jpg";
-    alert("onended: el audio ha terminado");
 
     fetch(API_BASE + "/ttsTime", {
       method: "POST",
@@ -356,16 +341,15 @@ async function playAudio(text, base64Audio) {
         seconds: audio.duration
       })
     })
-      .then(r => r.json())
-      .then(d => {
-        const remaining = Math.max(300 - d.total, 0);
-        timeSpent.textContent = formatTime(remaining);
-      });
+    .then(r => r.json())
+    .then(d => {
+      const remaining = Math.max(300 - d.total, 0);
+      timeSpent.textContent = formatTime(remaining);
+    });
   };
 
   try {
     await audio.play();
-    alert("audio.play() ha RESUELTO sin error");
   } catch (err) {
     alert("audio.play() ERROR: " + err.message);
   }
@@ -395,5 +379,6 @@ window.addEventListener("load", () => {
   }
 });
 </script>
+
 </body>
 </html>
