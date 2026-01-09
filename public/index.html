@@ -46,7 +46,6 @@
     <div>
       <h3>Chatbot de voz en inglés</h3>
 
-      <!-- FIX: NO disabled en el HTML -->
       <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
       <button id="startBtn">🎤 Hablar</button>
 
@@ -58,16 +57,9 @@
       <p id="timeRow" style="display:none;"><strong>Tiempo restante:</strong> <span id="timeSpent"></span></p>
     </div>
   </div>
-
 <script>
-/* ----------------------------------------------------------
-   DETECTAR IPHONE
------------------------------------------------------------ */
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-/* ----------------------------------------------------------
-   FIX: NO disabled en HTML → deshabilitar solo con JS
------------------------------------------------------------ */
 window.addEventListener("DOMContentLoaded", () => {
   if (isIphone) {
     unlockBtn.style.display = "inline-block";
@@ -79,11 +71,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-/* ----------------------------------------------------------
-   RECOGER DATOS DE MOODLE
------------------------------------------------------------ */
 const params = new URLSearchParams(window.location.search);
-
 const moodleFirstname = params.get("firstname") || "Anon";
 const moodleLastname  = params.get("lastname")  || "User";
 const email           = params.get("email")     || null;
@@ -93,9 +81,6 @@ if (!moodleUserId) {
   moodleUserId = "fallback_" + (moodleFirstname + "_" + moodleLastname).toLowerCase();
 }
 
-/* ----------------------------------------------------------
-   ESPERAR VOCES
------------------------------------------------------------ */
 function waitForVoices() {
   return new Promise(resolve => {
     let voices = speechSynthesis.getVoices();
@@ -116,31 +101,11 @@ async function chooseBestVoice() {
   }
 
   const voices = await waitForVoices();
-
-  function setVoice(v) {
-    selectedVoice = v;
-    voiceName.textContent = v ? v.name : "(sin voces)";
-    unlockBtn.disabled = false;
-  }
-
-  let v = voices.find(v => v.name.toLowerCase().includes("allison"));
-  if (v) return setVoice(v);
-
-  v = voices.find(v => v.name.toLowerCase().includes("samantha"));
-  if (v) return setVoice(v);
-
-  v = voices.find(v => v.lang === "en-GB");
-  if (v) return setVoice(v);
-
-  v = voices.find(v => v.lang.startsWith("en-"));
-  if (v) return setVoice(v);
-
-  setVoice(null);
+  selectedVoice = voices.find(v => v.lang.startsWith("en-")) || null;
+  voiceName.textContent = selectedVoice ? selectedVoice.name : "(sin voces)";
+  unlockBtn.disabled = false;
 }
 
-/* ----------------------------------------------------------
-   DUMMY SPEAK (iPhone)
------------------------------------------------------------ */
 if (isIphone) {
   window.addEventListener("load", () => {
     const dummy = new SpeechSynthesisUtterance(" ");
@@ -150,9 +115,6 @@ if (isIphone) {
   });
 }
 
-/* ----------------------------------------------------------
-   DESBLOQUEO DE AUDIO (iPhone)
------------------------------------------------------------ */
 let audioUnlocked = false;
 
 function unlockAudio() {
@@ -163,35 +125,25 @@ function unlockAudio() {
   silent.play().catch(()=>{});
 
   audioUnlocked = true;
-
   startBtn.disabled = false;
   unlockBtn.disabled = true;
   unlockBtn.textContent = "Sonido activado";
 
-  const lastBotMessage = botText.textContent.trim();
-  if (lastBotMessage) setTimeout(() => speakWithAvatar(lastBotMessage), 150);
+  const lastAudio = localStorage.getItem("lastBotAudio");
+  const lastMessage = localStorage.getItem("lastBotMessage");
+
+  if (lastAudio && lastMessage) {
+    setTimeout(() => playBackendTTS(lastMessage, lastAudio), 150);
+  }
 }
 
 unlockBtn.onclick = unlockAudio;
-
-/* ----------------------------------------------------------
-   VARIABLES
------------------------------------------------------------ */
 let mediaRecorder = null;
-let audioChunks = [];
-let mediaStream = null;
-let audioContext = null;
-let ttsContext = null; // 🔥 CONTEXTO PERSISTENTE PARA TTS
+let audioChunks   = [];
+let mediaStream   = null;
+let audioContext  = null;
+let ttsContext    = null;
 
-const userText = document.getElementById("userText");
-const botText = document.getElementById("botText");
-const timeSpent = document.getElementById("timeSpent");
-const timeRow = document.getElementById("timeRow");
-const avatar = document.getElementById("avatar");
-
-/* ----------------------------------------------------------
-   HISTORIAL
------------------------------------------------------------ */
 function getTodayDate() {
   return new Date().toISOString().split("T")[0];
 }
@@ -209,22 +161,16 @@ function loadLastMessage() {
   const h = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
   if (h.length > 0) {
     userText.textContent = h[h.length - 1].user;
-    botText.textContent = h[h.length - 1].bot;
+    botText.textContent  = h[h.length - 1].bot;
   }
 }
 
-/* ----------------------------------------------------------
-   FORMATEAR TIEMPO
------------------------------------------------------------ */
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
 }
 
-/* ----------------------------------------------------------
-   BOTÓN HABLAR — ADAPTADO AL NUEVO BACKEND + MOODLE USER
------------------------------------------------------------ */
 startBtn.onclick = async () => {
 
   if (!mediaStream) {
@@ -240,11 +186,10 @@ startBtn.onclick = async () => {
     userText.textContent = "";
 
     const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-    const formData = new FormData();
+    const formData  = new FormData();
     formData.append("audio", audioBlob, "audio.webm");
 
-    // STT
-    const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt", {
+    const sttRes  = await fetch("https://chatbot-xzhi.onrender.com/stt", {
       method: "POST",
       body: formData
     });
@@ -252,52 +197,50 @@ startBtn.onclick = async () => {
     const transcript = sttData.text || "";
     userText.textContent = transcript;
 
-    // Historial
     const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
-    const last3 = fullHistory.slice(-3);
+    const last3       = fullHistory.slice(-3);
 
-    // CHAT — AHORA CON USUARIO REAL DE MOODLE
     const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: moodleUserId,
+        userId:   moodleUserId,
         firstname: moodleFirstname,
-        lastname: moodleLastname,
-        email: email,
-        message: transcript,
-        history: last3
+        lastname:  moodleLastname,
+        email:     email,
+        message:   transcript,
+        history:   last3
       })
     });
 
-    const data = await chatRes.json();
+    const data     = await chatRes.json();
     const response = data.reply || "Error";
     botText.textContent = response;
 
     saveHistory(transcript, response);
 
     const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
-    timeSpent.textContent = formatTime(remaining);
-    timeRow.style.display = "block";
+    timeSpent.textContent   = formatTime(remaining);
+    timeRow.style.display   = "block";
 
-    // TTS backend o fallback
     if (data.audio) {
+      localStorage.setItem("lastBotAudio", data.audio);
+      localStorage.setItem("lastBotMessage", response);
       playBackendTTS(response, data.audio);
     } else {
       speakWithAvatar(response);
     }
   };
 
-  // Detección de silencio
   audioContext = new AudioContext();
-  const source = audioContext.createMediaStreamSource(mediaStream);
+  const source   = audioContext.createMediaStreamSource(mediaStream);
   const analyser = audioContext.createAnalyser();
   analyser.fftSize = 2048;
   source.connect(analyser);
 
   let silenceStart = Date.now();
   const SILENCE_THRESHOLD = 0.01;
-  const SILENCE_DURATION = 1500;
+  const SILENCE_DURATION  = 1500;
 
   function checkSilence() {
     const data = new Uint8Array(analyser.fftSize);
@@ -326,10 +269,6 @@ startBtn.onclick = async () => {
   userText.textContent = "(Escuchando...)";
   checkSilence();
 };
-
-/* ----------------------------------------------------------
-   TTS BACKEND — WebAudio (FUNCIONA EN IPHONE)
------------------------------------------------------------ */
 async function playBackendTTS(text, base64Audio) {
   try {
     if (!ttsContext) {
@@ -377,50 +316,17 @@ async function playBackendTTS(text, base64Audio) {
   }
 }
 
-/* ----------------------------------------------------------
-   TTS LOCAL (fallback)
------------------------------------------------------------ */
 function speakWithAvatar(text) {
   const utterance = new SpeechSynthesisUtterance(text);
   if (selectedVoice) utterance.voice = selectedVoice;
   else utterance.lang = "en-US";
-
-  let ttsStart = 0;
-
-  utterance.onstart = () => {
-    ttsStart = Date.now();
-    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4248/mod_resource/content/2/teachergif2.gif";
-  };
-
-  utterance.onend = () => {
-    const ttsDuration = (Date.now() - ttsStart) / 1000;
-    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg";
-
-    fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: moodleUserId,
-        seconds: ttsDuration
-      })
-    })
-    .then(r => r.json())
-    .then(d => {
-      const remaining = Math.max(300 - d.total, 0);
-      timeSpent.textContent = formatTime(remaining);
-    });
-  };
-
   speechSynthesis.speak(utterance);
 }
 
-/* ----------------------------------------------------------
-   SALUDO INICIAL
------------------------------------------------------------ */
 window.addEventListener("load", () => {
   chooseBestVoice();
 
-  const today = getTodayDate();
+  const today    = getTodayDate();
   const lastDate = localStorage.getItem("lastConnectionDate");
 
   if (lastDate === today) {
@@ -436,14 +342,15 @@ window.addEventListener("load", () => {
     saveHistory("", greeting);
   }
 
-  if (!isIphone) {
-    const lastBotMessage = botText.textContent.trim();
-    if (lastBotMessage) setTimeout(() => speakWithAvatar(lastBotMessage), 150);
+  const lastAudio   = localStorage.getItem("lastBotAudio");
+  const lastMessage = localStorage.getItem("lastBotMessage");
+
+  if (!isIphone && lastAudio && lastMessage) {
+    setTimeout(() => playBackendTTS(lastMessage, lastAudio), 300);
   }
 
   localStorage.setItem("lastConnectionDate", today);
 });
 </script>
-
 </body>
 </html>
