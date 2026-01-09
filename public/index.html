@@ -289,17 +289,6 @@ startBtn.onclick = async () => {
   };
 
   // Detección de silencio
-  audioContext = new AudioContext();
-  const source = audioContext.createMediaStreamSource(mediaStream);
-  const analyser = audioContext.createAnalyser();
-  analyser.fftSize = 2048;
-  source.connect(analyser);
-
-  let silenceStart = Date.now();
-  const SILENCE_THRESHOLD = 0.01;
-  const SILENCE_DURATION = 1500;
-
- // Detección de silencio
 audioContext = new AudioContext();
 const source = audioContext.createMediaStreamSource(mediaStream);
 const analyser = audioContext.createAnalyser();
