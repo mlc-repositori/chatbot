@@ -299,32 +299,55 @@ startBtn.onclick = async () => {
   const SILENCE_THRESHOLD = 0.01;
   const SILENCE_DURATION = 1500;
 
-  function checkSilence() {
-    const data = new Uint8Array(analyser.fftSize);
-    analyser.getByteTimeDomainData(data);
+ // Detección de silencio
+audioContext = new AudioContext();
+const source = audioContext.createMediaStreamSource(mediaStream);
+const analyser = audioContext.createAnalyser();
+analyser.fftSize = 2048;
+source.connect(analyser);
 
-    let sum = 0;
-    for (let i = 0; i < data.length; i++) {
-      const v = (data[i] - 128) / 128;
-      sum += v * v;
-    }
-    const rms = Math.sqrt(sum / data.length);
+// 🔥 MEJORA 1: umbral más alto + duración menor
+const SILENCE_THRESHOLD = 0.03;
+const SILENCE_DURATION = 1400;
 
-    if (rms < SILENCE_THRESHOLD) {
-      if (Date.now() - silenceStart > SILENCE_DURATION) {
-        mediaRecorder.stop();
-        return;
-      }
-    } else {
-      silenceStart = Date.now();
-    }
+// 🔥 MEJORA 3: límite máximo de grabación
+const MAX_RECORDING_TIME = 8000; // 8 segundos
+const recordingStart = Date.now();
 
-    requestAnimationFrame(checkSilence);
+let silenceStart = Date.now();
+
+function checkSilence() {
+  const data = new Uint8Array(analyser.fftSize);
+  analyser.getByteTimeDomainData(data);
+
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) {
+    const v = (data[i] - 128) / 128;
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / data.length);
+
+  // 🔥 Corte de seguridad por tiempo máximo
+  if (Date.now() - recordingStart > MAX_RECORDING_TIME) {
+    mediaRecorder.stop();
+    return;
   }
 
-  mediaRecorder.start();
-  userText.textContent = "(Escuchando...)";
-  checkSilence();
+  if (rms < SILENCE_THRESHOLD) {
+    if (Date.now() - silenceStart > SILENCE_DURATION) {
+      mediaRecorder.stop();
+      return;
+    }
+  } else {
+    silenceStart = Date.now();
+  }
+
+  requestAnimationFrame(checkSilence);
+}
+
+mediaRecorder.start();
+userText.textContent = "(Escuchando...)";
+checkSilence();
 };
 
 /* ----------------------------------------------------------
