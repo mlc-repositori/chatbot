@@ -34,7 +34,7 @@ function getToday() {
 const upload = multer({ dest: "uploads/" });
 
 // ============================================================
-// 🔊 RUTA STT — Whisper (OpenAI) — CORREGIDA
+// 🔊 RUTA STT — Whisper (OpenAI)
 // ============================================================
 app.post("/stt", upload.single("audio"), async (req, res) => {
   try {
@@ -51,7 +51,6 @@ app.post("/stt", upload.single("audio"), async (req, res) => {
     formData.append("language", "en");
     formData.append("task", "transcribe");
     formData.append("temperature", "0");
-
 
     const openaiRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
@@ -70,7 +69,7 @@ app.post("/stt", upload.single("audio"), async (req, res) => {
 });
 
 // ============================================================
-// 🔥 MOTOR PEDAGÓGICO COMPLETO (sin cambios)
+// 🔥 MOTOR PEDAGÓGICO (sin cambios)
 // ============================================================
 
 function pickRandomTopic(previousTopic = null) {
@@ -228,7 +227,7 @@ function advancePhase(ip) {
 }
 
 // ============================================================
-// 🤖 RUTA CHAT — GPT‑4o‑mini + TTS
+// 🤖 RUTA CHAT — GPT‑4o‑mini + TTS (CORREGIDO)
 // ============================================================
 app.post("/chat", async (req, res) => {
   const { message, history, firstname, lastname, userId, email } = req.body;
@@ -283,6 +282,7 @@ Current phase instructions: ${phasePrompt}
     });
   }
 
+  // ------------------ GPT TEXT ------------------
   const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -305,7 +305,7 @@ Current phase instructions: ${phasePrompt}
 
   advancePhase(ip);
 
-  // ------------------ TTS ------------------
+  // ------------------ TTS (NUEVO FORMATO OFICIAL) ------------------
   const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: {
@@ -315,12 +315,13 @@ Current phase instructions: ${phasePrompt}
     body: JSON.stringify({
       model: "gpt-4o-mini-tts",
       voice: "canyon",
-      input: reply
+      input: reply,
+      format: "wav"
     })
   });
 
-  const audioBuffer = Buffer.from(await ttsRes.arrayBuffer());
-  const audioBase64 = audioBuffer.toString("base64");
+  const arrayBuffer = await ttsRes.arrayBuffer();
+  const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
 
   res.json({
     reply,
