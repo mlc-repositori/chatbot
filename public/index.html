@@ -338,7 +338,7 @@ async function playBackendTTS(text, base64Audio) {
 
     source.onended = () => {
       const ttsDuration = (Date.now() - ttsStart) / 1000;
-      avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg";
+      avatar.src = "avatarprofemujer2.jpg";
 
       fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
         method: "POST",
@@ -375,12 +375,12 @@ function speakWithAvatar(text) {
 
   utterance.onstart = () => {
     ttsStart = Date.now();
-    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4248/mod_resource/content/2/teachergif2.gif";
+    avatar.src = "teachergif2.gif";
   };
 
   utterance.onend = () => {
     const ttsDuration = (Date.now() - ttsStart) / 1000;
-    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg";
+    avatar.src = "avatarprofemujer2.jpg";
 
     fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
       method: "POST",
