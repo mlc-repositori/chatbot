@@ -42,7 +42,7 @@
 </head>
 <body>
   <div class="chatbot-container">
-    <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
+    <img id="avatar" src="https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg" alt="Avatar">
     <div>
       <h3>Chatbot de voz en inglés</h3>
 
@@ -78,6 +78,20 @@ window.addEventListener("DOMContentLoaded", () => {
     startBtn.disabled = false;
   }
 });
+
+/* ----------------------------------------------------------
+   RECOGER DATOS DE MOODLE
+----------------------------------------------------------- */
+const params = new URLSearchParams(window.location.search);
+
+const moodleFirstname = params.get("firstname") || "Anon";
+const moodleLastname  = params.get("lastname")  || "User";
+const email           = params.get("email")     || null;
+
+let moodleUserId = params.get("userid");
+if (!moodleUserId) {
+  moodleUserId = "fallback_" + (moodleFirstname + "_" + moodleLastname).toLowerCase();
+}
 
 /* ----------------------------------------------------------
    ESPERAR VOCES
@@ -209,7 +223,7 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   BOTÓN HABLAR — ADAPTADO AL NUEVO BACKEND
+   BOTÓN HABLAR — ADAPTADO AL NUEVO BACKEND + MOODLE USER
 ----------------------------------------------------------- */
 startBtn.onclick = async () => {
 
@@ -242,7 +256,7 @@ startBtn.onclick = async () => {
     const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
     const last3 = fullHistory.slice(-3);
 
-    // CHAT
+    // CHAT — AHORA CON USUARIO REAL DE MOODLE
     const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -250,7 +264,7 @@ startBtn.onclick = async () => {
         userId: moodleUserId,
         firstname: moodleFirstname,
         lastname: moodleLastname,
-        email: null,
+        email: email,
         message: transcript,
         history: last3
       })
@@ -332,13 +346,13 @@ async function playBackendTTS(text, base64Audio) {
     source.buffer = audioBuffer;
     source.connect(ttsContext.destination);
 
-    avatar.src = "teachergif2.gif";
+    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4248/mod_resource/content/2/teachergif2.gif";
 
     const ttsStart = Date.now();
 
     source.onended = () => {
       const ttsDuration = (Date.now() - ttsStart) / 1000;
-      avatar.src = "avatarprofemujer2.jpg";
+      avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg";
 
       fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
         method: "POST",
@@ -375,12 +389,12 @@ function speakWithAvatar(text) {
 
   utterance.onstart = () => {
     ttsStart = Date.now();
-    avatar.src = "teachergif2.gif";
+    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4248/mod_resource/content/2/teachergif2.gif";
   };
 
   utterance.onend = () => {
     const ttsDuration = (Date.now() - ttsStart) / 1000;
-    avatar.src = "avatarprofemujer2.jpg";
+    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg";
 
     fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
       method: "POST",
