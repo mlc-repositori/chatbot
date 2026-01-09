@@ -247,9 +247,9 @@ startBtn.onclick = async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: "browser_user",
-        firstname: "Student",
-        lastname: "",
+        userId: moodleUserId,
+        firstname: moodleFirstname,
+        lastname: moodleLastname,
         email: null,
         message: transcript,
         history: last3
@@ -344,7 +344,7 @@ async function playBackendTTS(text, base64Audio) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: "browser_user",
+          userId: moodleUserId,
           seconds: ttsDuration
         })
       })
@@ -386,7 +386,7 @@ function speakWithAvatar(text) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId: "browser_user",
+        userId: moodleUserId,
         seconds: ttsDuration
       })
     })
