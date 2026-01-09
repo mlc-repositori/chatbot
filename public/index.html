@@ -46,7 +46,6 @@
     <div>
       <h3>Chatbot de voz en inglés</h3>
 
-      <!-- FIX: NO disabled en el HTML -->
       <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
       <button id="startBtn">🎤 Hablar</button>
 
@@ -169,7 +168,11 @@ function unlockAudio() {
   unlockBtn.textContent = "Sonido activado";
 
   const lastBotMessage = botText.textContent.trim();
-  if (lastBotMessage) setTimeout(() => speakWithAvatar(lastBotMessage), 150);
+  const lastAudio = localStorage.getItem("lastBotAudio");
+
+  if (lastAudio && lastBotMessage) {
+    setTimeout(() => playBackendTTS(lastBotMessage, lastAudio), 150);
+  }
 }
 
 unlockBtn.onclick = unlockAudio;
@@ -181,7 +184,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let mediaStream = null;
 let audioContext = null;
-let ttsContext = null; // 🔥 CONTEXTO PERSISTENTE PARA TTS
+let ttsContext = null;
 
 const userText = document.getElementById("userText");
 const botText = document.getElementById("botText");
@@ -280,8 +283,9 @@ startBtn.onclick = async () => {
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
 
-    // TTS backend o fallback
+    // GUARDAR AUDIO PARA RECONEXIÓN
     if (data.audio) {
+      localStorage.setItem("lastBotAudio", data.audio);
       playBackendTTS(response, data.audio);
     } else {
       speakWithAvatar(response);
@@ -415,7 +419,7 @@ function speakWithAvatar(text) {
 }
 
 /* ----------------------------------------------------------
-   SALUDO INICIAL
+   SALUDO INICIAL + REPRODUCCIÓN DEL ÚLTIMO AUDIO
 ----------------------------------------------------------- */
 window.addEventListener("load", () => {
   chooseBestVoice();
@@ -436,9 +440,15 @@ window.addEventListener("load", () => {
     saveHistory("", greeting);
   }
 
+  const lastBotMessage = botText.textContent.trim();
+  const lastAudio = localStorage.getItem("lastBotAudio");
+
   if (!isIphone) {
-    const lastBotMessage = botText.textContent.trim();
-    if (lastBotMessage) setTimeout(() => speakWithAvatar(lastBotMessage), 150);
+    if (lastAudio && lastBotMessage) {
+      setTimeout(() => playBackendTTS(lastBotMessage, lastAudio), 150);
+    } else if (lastBotMessage) {
+      setTimeout(() => speakWithAvatar(lastBotMessage), 150);
+    }
   }
 
   localStorage.setItem("lastConnectionDate", today);
