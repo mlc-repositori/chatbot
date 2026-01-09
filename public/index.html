@@ -46,7 +46,6 @@
     <div>
       <h3>Chatbot de voz en inglés</h3>
 
-      <!-- FIX: NO disabled en el HTML -->
       <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
       <button id="startBtn">🎤 Hablar</button>
 
@@ -94,7 +93,7 @@ if (!moodleUserId) {
 }
 
 /* ----------------------------------------------------------
-   ESPERAR VOCES
+   ESPERAR VOCES (ya no se usan, pero dejamos la estructura)
 ----------------------------------------------------------- */
 function waitForVoices() {
   return new Promise(resolve => {
@@ -107,35 +106,7 @@ function waitForVoices() {
 let selectedVoice = null;
 
 async function chooseBestVoice() {
-  if (!isIphone) {
-    const voices = speechSynthesis.getVoices();
-    selectedVoice = voices.find(v => v.lang.startsWith("en-"));
-    voiceName.textContent = selectedVoice ? selectedVoice.name : "Default";
-    startBtn.disabled = false;
-    return;
-  }
-
-  const voices = await waitForVoices();
-
-  function setVoice(v) {
-    selectedVoice = v;
-    voiceName.textContent = v ? v.name : "(sin voces)";
-    unlockBtn.disabled = false;
-  }
-
-  let v = voices.find(v => v.name.toLowerCase().includes("allison"));
-  if (v) return setVoice(v);
-
-  v = voices.find(v => v.name.toLowerCase().includes("samantha"));
-  if (v) return setVoice(v);
-
-  v = voices.find(v => v.lang === "en-GB");
-  if (v) return setVoice(v);
-
-  v = voices.find(v => v.lang.startsWith("en-"));
-  if (v) return setVoice(v);
-
-  setVoice(null);
+  voiceName.textContent = "OpenAI TTS (único)";
 }
 
 /* ----------------------------------------------------------
@@ -159,7 +130,7 @@ function unlockAudio() {
   if (!isIphone || audioUnlocked) return;
 
   const silent = new Audio();
-  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...";
+  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
   silent.play().catch(()=>{});
 
   audioUnlocked = true;
@@ -169,7 +140,15 @@ function unlockAudio() {
   unlockBtn.textContent = "Sonido activado";
 
   const lastBotMessage = botText.textContent.trim();
-  if (lastBotMessage) setTimeout(() => speakWithAvatar(lastBotMessage), 150);
+  if (lastBotMessage) setTimeout(() => {
+    fetch("https://chatbot-xzhi.onrender.com/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: lastBotMessage })
+    })
+    .then(r => r.json())
+    .then(d => playBackendTTS(lastBotMessage, d.audio));
+  }, 150);
 }
 
 unlockBtn.onclick = unlockAudio;
@@ -181,7 +160,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let mediaStream = null;
 let audioContext = null;
-let ttsContext = null; // 🔥 CONTEXTO PERSISTENTE PARA TTS
+let ttsContext = null;
 
 const userText = document.getElementById("userText");
 const botText = document.getElementById("botText");
@@ -223,7 +202,7 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   BOTÓN HABLAR — ADAPTADO AL NUEVO BACKEND + MOODLE USER
+   BOTÓN HABLAR
 ----------------------------------------------------------- */
 startBtn.onclick = async () => {
 
@@ -256,7 +235,7 @@ startBtn.onclick = async () => {
     const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
     const last3 = fullHistory.slice(-3);
 
-    // CHAT — AHORA CON USUARIO REAL DE MOODLE
+    // CHAT
     const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -280,67 +259,60 @@ startBtn.onclick = async () => {
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
 
-    // TTS backend o fallback
-    if (data.audio) {
-      playBackendTTS(response, data.audio);
-    } else {
-      speakWithAvatar(response);
-    }
+    // 🔥 Opción B: solo OpenAI TTS
+    playBackendTTS(response, data.audio);
   };
 
   // Detección de silencio
-audioContext = new AudioContext();
-const source = audioContext.createMediaStreamSource(mediaStream);
-const analyser = audioContext.createAnalyser();
-analyser.fftSize = 2048;
-source.connect(analyser);
+  audioContext = new AudioContext();
+  const source = audioContext.createMediaStreamSource(mediaStream);
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048;
+  source.connect(analyser);
 
-// 🔥 MEJORA 1: umbral más alto + duración menor
-const SILENCE_THRESHOLD = 0.03;
-const SILENCE_DURATION = 1400;
+  const SILENCE_THRESHOLD = 0.04;
+  const SILENCE_DURATION = 1200;
 
-// 🔥 MEJORA 3: límite máximo de grabación
-const MAX_RECORDING_TIME = 10000; // 8 segundos
-const recordingStart = Date.now();
+  const MAX_RECORDING_TIME = 8000;
+  const recordingStart = Date.now();
 
-let silenceStart = Date.now();
+  let silenceStart = Date.now();
 
-function checkSilence() {
-  const data = new Uint8Array(analyser.fftSize);
-  analyser.getByteTimeDomainData(data);
+  function checkSilence() {
+    const data = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(data);
 
-  let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    const v = (data[i] - 128) / 128;
-    sum += v * v;
-  }
-  const rms = Math.sqrt(sum / data.length);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = (data[i] - 128) / 128;
+      sum += v * v;
+    }
+    const rms = Math.sqrt(sum / data.length);
 
-  // 🔥 Corte de seguridad por tiempo máximo
-  if (Date.now() - recordingStart > MAX_RECORDING_TIME) {
-    mediaRecorder.stop();
-    return;
-  }
-
-  if (rms < SILENCE_THRESHOLD) {
-    if (Date.now() - silenceStart > SILENCE_DURATION) {
+    if (Date.now() - recordingStart > MAX_RECORDING_TIME) {
       mediaRecorder.stop();
       return;
     }
-  } else {
-    silenceStart = Date.now();
+
+    if (rms < SILENCE_THRESHOLD) {
+      if (Date.now() - silenceStart > SILENCE_DURATION) {
+        mediaRecorder.stop();
+        return;
+      }
+    } else {
+      silenceStart = Date.now();
+    }
+
+    requestAnimationFrame(checkSilence);
   }
 
-  requestAnimationFrame(checkSilence);
-}
-
-mediaRecorder.start();
-userText.textContent = "(Escuchando...)";
-checkSilence();
+  mediaRecorder.start();
+  userText.textContent = "(Escuchando...)";
+  checkSilence();
 };
 
 /* ----------------------------------------------------------
-   TTS BACKEND — WebAudio (FUNCIONA EN IPHONE)
+   TTS BACKEND — WebAudio
 ----------------------------------------------------------- */
 async function playBackendTTS(text, base64Audio) {
   try {
@@ -384,46 +356,15 @@ async function playBackendTTS(text, base64Audio) {
     source.start(0);
 
   } catch (err) {
-    console.warn("Fallo TTS backend, usando fallback:", err);
-    speakWithAvatar(text);
+    console.warn("Error TTS backend:", err);
   }
 }
 
 /* ----------------------------------------------------------
-   TTS LOCAL (fallback)
+   TTS LOCAL (desactivado)
 ----------------------------------------------------------- */
 function speakWithAvatar(text) {
-  const utterance = new SpeechSynthesisUtterance(text);
-  if (selectedVoice) utterance.voice = selectedVoice;
-  else utterance.lang = "en-US";
-
-  let ttsStart = 0;
-
-  utterance.onstart = () => {
-    ttsStart = Date.now();
-    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4248/mod_resource/content/2/teachergif2.gif";
-  };
-
-  utterance.onend = () => {
-    const ttsDuration = (Date.now() - ttsStart) / 1000;
-    avatar.src = "https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg";
-
-    fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: moodleUserId,
-        seconds: ttsDuration
-      })
-    })
-    .then(r => r.json())
-    .then(d => {
-      const remaining = Math.max(300 - d.total, 0);
-      timeSpent.textContent = formatTime(remaining);
-    });
-  };
-
-  speechSynthesis.speak(utterance);
+  // Opción B: nunca usar speechSynthesis
 }
 
 /* ----------------------------------------------------------
@@ -450,7 +391,15 @@ window.addEventListener("load", () => {
 
   if (!isIphone) {
     const lastBotMessage = botText.textContent.trim();
-    if (lastBotMessage) setTimeout(() => speakWithAvatar(lastBotMessage), 150);
+    if (lastBotMessage) setTimeout(() => {
+      fetch("https://chatbot-xzhi.onrender.com/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: lastBotMessage })
+      })
+      .then(r => r.json())
+      .then(d => playBackendTTS(lastBotMessage, d.audio));
+    }, 150);
   }
 
   localStorage.setItem("lastConnectionDate", today);
