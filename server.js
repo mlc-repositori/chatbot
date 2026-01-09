@@ -314,7 +314,7 @@ Current phase instructions: ${phasePrompt}
     },
     body: JSON.stringify({
       model: "gpt-4o-mini-tts",
-      voice: "alloy",
+      voice: "shimmer",
       input: reply
     })
   });
