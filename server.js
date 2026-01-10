@@ -227,7 +227,7 @@ function advancePhase(ip) {
 }
 
 // ============================================================
-// 🤖 RUTA CHAT — GPT‑4o‑mini + TTS (CORREGIDO)
+// 🤖 RUTA CHAT — GPT‑4o‑mini + TTS
 // ============================================================
 app.post("/chat", async (req, res) => {
   const { message, history, firstname, lastname, userId, email } = req.body;
@@ -282,7 +282,6 @@ Current phase instructions: ${phasePrompt}
     });
   }
 
-  // ------------------ GPT TEXT ------------------
   const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -305,7 +304,6 @@ Current phase instructions: ${phasePrompt}
 
   advancePhase(ip);
 
-  // ------------------ TTS (NUEVO FORMATO OFICIAL) ------------------
   const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: {
@@ -328,6 +326,37 @@ Current phase instructions: ${phasePrompt}
     audio: audioBase64,
     timeSpentToday: used
   });
+});
+
+// ============================================================
+// 🔊 RUTA TTS — PARA EL SALUDO INICIAL
+// ============================================================
+app.post("/tts", async (req, res) => {
+  const { text } = req.body;
+
+  try {
+    const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini-tts",
+        voice: "shimmer",
+        input: text,
+        format: "wav"
+      })
+    });
+
+    const arrayBuffer = await ttsRes.arrayBuffer();
+    const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+
+    res.json({ audio: audioBase64 });
+  } catch (err) {
+    console.error("❌ Error en /tts:", err);
+    res.json({ audio: null });
+  }
 });
 
 // ============================================================
