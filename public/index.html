@@ -129,6 +129,7 @@ let audioUnlocked = false;
 function unlockAudio() {
   if (!isIphone || audioUnlocked) return;
 
+  // Desbloquear audio en iPhone
   const silent = new Audio();
   silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
   silent.play().catch(()=>{});
@@ -139,16 +140,28 @@ function unlockAudio() {
   unlockBtn.disabled = true;
   unlockBtn.textContent = "Sonido activado";
 
-  const lastBotMessage = botText.textContent.trim();
-  if (lastBotMessage) setTimeout(() => {
-    fetch("https://chatbot-xzhi.onrender.com/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: lastBotMessage })
-    })
-    .then(r => r.json())
-    .then(d => playBackendTTS(lastBotMessage, d.audio));
-  }, 150);
+  // Comprobar si es la primera conexión del día
+  const today = getTodayDate();
+  const lastDate = localStorage.getItem("lastConnectionDate");
+
+  if (lastDate !== today) {
+    // Solo reproducir saludo si ES la primera conexión del día
+    const greeting = botText.textContent.trim();
+
+    if (greeting) {
+      setTimeout(() => {
+        fetch("https://chatbot-xzhi.onrender.com/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: greeting })
+        })
+        .then(r => r.json())
+        .then(d => {
+          if (d.audio) playBackendTTS(greeting, d.audio);
+        });
+      }, 300);
+    }
+  }
 }
 
 unlockBtn.onclick = unlockAudio;
@@ -368,38 +381,44 @@ function speakWithAvatar(text) {
 }
 
 /* ----------------------------------------------------------
-   SALUDO INICIAL
+   SALUDO INICIAL PERSONALIZADO
 ----------------------------------------------------------- */
 window.addEventListener("load", () => {
-  chooseBestVoice();
 
   const today = getTodayDate();
   const lastDate = localStorage.getItem("lastConnectionDate");
 
+  let greeting = "";
+
   if (lastDate === today) {
+    // Ya entró hoy → NO hay saludo inicial
     loadLastMessage();
+    greeting = ""; // ← IMPORTANTE: evitar que suene
   } else {
+    // Primer acceso del día → saludo personalizado
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", {
       weekday: "long", year: "numeric", month: "long", day: "numeric"
     });
 
-    const greeting = `Hello! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+    greeting = `Hello ${moodleFirstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
     botText.textContent = greeting;
     saveHistory("", greeting);
   }
 
-  if (!isIphone) {
-    const lastBotMessage = botText.textContent.trim();
-    if (lastBotMessage) setTimeout(() => {
+  // SOLO PC / ANDROID → reproducir saludo automáticamente
+  if (!isIphone && greeting) {
+    setTimeout(() => {
       fetch("https://chatbot-xzhi.onrender.com/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: lastBotMessage })
+        body: JSON.stringify({ text: greeting })
       })
       .then(r => r.json())
-      .then(d => playBackendTTS(lastBotMessage, d.audio));
-    }, 150);
+      .then(d => {
+        if (d.audio) playBackendTTS(greeting, d.audio);
+      });
+    }, 300);
   }
 
   localStorage.setItem("lastConnectionDate", today);
