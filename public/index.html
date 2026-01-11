@@ -167,7 +167,15 @@ function loadLastMessage() {
     botText.textContent = h[h.length - 1].bot;
   }
 }
-
+/* ----------------------------------------------------------
+   FORMATEAR TIEMPO
+----------------------------------------------------------- */
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+  
 /* ----------------------------------------------------------
    START SESSION — desbloqueo universal de audio
 ----------------------------------------------------------- */
