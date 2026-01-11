@@ -60,6 +60,24 @@
     .start-session-btn:active {
       transform: scale(0.98);
     }
+
+    /* Botón repetir 🔁 */
+    .repeat-btn {
+      background: none;
+      border: none;
+      font-size: 32px;
+      cursor: pointer;
+      margin-top: 4px;
+      padding: 4px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .repeat-btn:hover {
+      transform: scale(1.15);
+      opacity: 0.8;
+    }
+    .repeat-btn:active {
+      transform: scale(0.95);
+    }
   </style>
 </head>
 
@@ -77,10 +95,14 @@
       <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
 
       <!-- Botón hablar -->
-      <button id="startBtn" disabled>🎤 </button>
+      <button id="startBtn" disabled>🎤</button>
 
       <p><strong>Tú:</strong> <span id="userText"></span></p>
+
       <p><strong>Bot:</strong> <span id="botText"></span></p>
+
+      <!-- 🔁 Botón repetir -->
+      <button id="repeatBtn" class="repeat-btn">🔁</button>
 
       <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
 
@@ -105,7 +127,7 @@ window.addEventListener("DOMContentLoaded", () => {
     startBtn.disabled = true;
   } else {
     unlockBtn.style.display = "none";
-    startBtn.disabled = true; // Se activará tras Start Session
+    startBtn.disabled = true;
   }
 });
 
@@ -138,6 +160,9 @@ let mediaStream = null;
 let audioContext = null;
 let ttsContext = null;
 
+let lastBotAudio = null;
+let lastBotText = "";
+
 const userText = document.getElementById("userText");
 const botText = document.getElementById("botText");
 const timeSpent = document.getElementById("timeSpent");
@@ -167,6 +192,7 @@ function loadLastMessage() {
     botText.textContent = h[h.length - 1].bot;
   }
 }
+
 /* ----------------------------------------------------------
    FORMATEAR TIEMPO
 ----------------------------------------------------------- */
@@ -175,9 +201,9 @@ function formatTime(seconds) {
   const s = Math.floor(seconds % 60);
   return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
 }
-  
+
 /* ----------------------------------------------------------
-   START SESSION — desbloqueo universal de audio
+   START SESSION
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
@@ -185,7 +211,6 @@ startSessionBtn.onclick = async () => {
 
   console.log("Start Session pulsado — desbloqueando audio");
 
-  // 1. Desbloquear AudioContext
   if (!ttsContext) {
     ttsContext = new (window.AudioContext || window.webkitAudioContext)();
   }
@@ -193,14 +218,12 @@ startSessionBtn.onclick = async () => {
     await ttsContext.resume();
   }
 
-  // 2. Desbloqueo iPhone
   if (isIphone) {
     const silent = new Audio();
     silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
     silent.play().catch(()=>{});
   }
 
-  // 3. Reproducir saludo si existe texto
   const greeting = botText.textContent.trim();
   console.log("GREETING EN START SESSION:", greeting);
 
@@ -214,14 +237,15 @@ startSessionBtn.onclick = async () => {
     })
     .then(r => r.json())
     .then(d => {
-      if (d.audio) playBackendTTS(greeting, d.audio);
+      if (d.audio) {
+        lastBotText = greeting;
+        lastBotAudio = d.audio;
+        playBackendTTS(greeting, d.audio);
+      }
     });
   }
 
-  // 4. Activar botón hablar
   startBtn.disabled = false;
-
-  // 5. Ocultar Start Session
   startSessionBtn.style.display = "none";
 };
 
@@ -306,6 +330,9 @@ startBtn.onclick = async () => {
     botText.textContent = response;
 
     saveHistory(transcript, response);
+
+    lastBotText = response;
+    lastBotAudio = data.audio;
 
     const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
     timeSpent.textContent = formatTime(remaining);
@@ -409,6 +436,18 @@ async function playBackendTTS(text, base64Audio) {
     console.warn("Error TTS backend:", err);
   }
 }
+
+/* ----------------------------------------------------------
+   BOTÓN REPETIR 🔁
+----------------------------------------------------------- */
+document.getElementById("repeatBtn").onclick = () => {
+  if (lastBotAudio) {
+    console.log("Reproduciendo repetición:", lastBotText);
+    playBackendTTS(lastBotText, lastBotAudio);
+  } else {
+    console.log("No hay audio previo para repetir");
+  }
+};
 </script>
 
 </body>
