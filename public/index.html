@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Chatbot con Avatar Animado</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -38,16 +39,45 @@
       font-size: clamp(16px, 2.8vw, 20px);
       margin: 4px 0;
     }
+
+    /* Botón Start Session */
+    .start-session-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: clamp(18px, 3.4vw, 22px);
+      background-color: #000;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      transition: opacity 0.3s ease, transform 0.2s ease;
+    }
+    .start-session-btn:hover {
+      opacity: 0.85;
+      transform: scale(1.02);
+    }
+    .start-session-btn:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
+
 <body>
   <div class="chatbot-container">
     <img id="avatar" src="https://virtualacademy.mylanguagecoach.net/pluginfile.php/4246/mod_resource/content/1/avatarprofemujer2.jpg" alt="Avatar">
+
     <div>
       <h3>Chatbot de voz en inglés</h3>
 
+      <!-- NUEVO: Botón Start Session -->
+      <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
+
+      <!-- Botón iPhone (solo visible en iPhone) -->
       <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
-      <button id="startBtn">🎤 Hablar</button>
+
+      <!-- Botón hablar -->
+      <button id="startBtn" disabled>🎤 Hablar</button>
 
       <p><strong>Tú:</strong> <span id="userText"></span></p>
       <p><strong>Bot:</strong> <span id="botText"></span></p>
@@ -59,7 +89,7 @@
   </div>
 
 <script>
-console.log("JS CARGADO");  // LOG #1
+console.log("JS CARGADO");
 
 /* ----------------------------------------------------------
    DETECTAR IPHONE
@@ -67,24 +97,22 @@ console.log("JS CARGADO");  // LOG #1
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* ----------------------------------------------------------
-   FIX: NO disabled en HTML → deshabilitar solo con JS
+   CONFIGURAR BOTONES SEGÚN DISPOSITIVO
 ----------------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
   if (isIphone) {
     unlockBtn.style.display = "inline-block";
-    unlockBtn.disabled = false;
     startBtn.disabled = true;
   } else {
     unlockBtn.style.display = "none";
-    startBtn.disabled = false;
+    startBtn.disabled = true; // Se activará tras Start Session
   }
 });
 
 /* ----------------------------------------------------------
-   RECOGER DATOS DE MOODLE
+   DATOS MOODLE
 ----------------------------------------------------------- */
 const params = new URLSearchParams(window.location.search);
-
 const moodleFirstname = params.get("firstname") || "Anon";
 const moodleLastname  = params.get("lastname")  || "User";
 const email           = params.get("email")     || null;
@@ -141,55 +169,85 @@ function loadLastMessage() {
 }
 
 /* ----------------------------------------------------------
-   FORMATEAR TIEMPO
+   START SESSION — desbloqueo universal de audio
 ----------------------------------------------------------- */
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-}
+const startSessionBtn = document.getElementById("startSessionBtn");
+
+startSessionBtn.onclick = async () => {
+
+  console.log("Start Session pulsado — desbloqueando audio");
+
+  // 1. Desbloquear AudioContext
+  if (!ttsContext) {
+    ttsContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (ttsContext.state === "suspended") {
+    await ttsContext.resume();
+  }
+
+  // 2. Desbloqueo iPhone
+  if (isIphone) {
+    const silent = new Audio();
+    silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
+    silent.play().catch(()=>{});
+  }
+
+  // 3. Reproducir saludo si es primera conexión del día
+  const today = getTodayDate();
+  const lastDate = localStorage.getItem("lastConnectionDate");
+  const greeting = botText.textContent.trim();
+
+  if (lastDate !== today && greeting) {
+    console.log("Reproduciendo saludo inicial:", greeting);
+
+    fetch("https://chatbot-xzhi.onrender.com/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: greeting })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.audio) playBackendTTS(greeting, d.audio);
+    });
+  }
+
+  // 4. Activar botón hablar
+  startBtn.disabled = false;
+
+  // 5. Ocultar Start Session
+  startSessionBtn.style.display = "none";
+};
 
 /* ----------------------------------------------------------
-   DESBLOQUEO DE AUDIO (iPhone)
+   SALUDO INICIAL (solo texto)
 ----------------------------------------------------------- */
-let audioUnlocked = false;
+window.addEventListener("load", () => {
 
-function unlockAudio() {
-  if (!isIphone || audioUnlocked) return;
+  console.log("ENTRANDO EN window.onload (saludo inicial)");
 
-  const silent = new Audio();
-  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
-  silent.play().catch(()=>{});
-
-  audioUnlocked = true;
-
-  startBtn.disabled = false;
-  unlockBtn.disabled = true;
-  unlockBtn.textContent = "Sonido activado";
+  chooseBestVoice();
 
   const today = getTodayDate();
   const lastDate = localStorage.getItem("lastConnectionDate");
 
-  if (lastDate !== today) {
-    const greeting = botText.textContent.trim();
+  let greeting = "";
 
-    if (greeting) {
-      setTimeout(() => {
-        fetch("https://chatbot-xzhi.onrender.com/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: greeting })
-        })
-        .then(r => r.json())
-        .then(d => {
-          if (d.audio) playBackendTTS(greeting, d.audio);
-        });
-      }, 300);
-    }
+  if (lastDate === today) {
+    loadLastMessage();
+    greeting = "";
+  } else {
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric"
+    });
+
+    greeting = `Hello ${moodleFirstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+    botText.textContent = greeting;
+    saveHistory("", greeting);
   }
-}
 
-unlockBtn.onclick = unlockAudio;
+  localStorage.setItem("lastConnectionDate", today);
+});
 
 /* ----------------------------------------------------------
    BOTÓN HABLAR
@@ -344,54 +402,6 @@ async function playBackendTTS(text, base64Audio) {
     console.warn("Error TTS backend:", err);
   }
 }
-
-/* ----------------------------------------------------------
-   SALUDO INICIAL (FUSIONADO Y FUNCIONAL)
------------------------------------------------------------ */
-window.addEventListener("load", () => {
-
-  console.log("ENTRANDO EN window.onload (saludo inicial)");
-
-  chooseBestVoice();
-
-  const today = getTodayDate();
-  const lastDate = localStorage.getItem("lastConnectionDate");
-
-  let greeting = "";
-
-  if (lastDate === today) {
-    loadLastMessage();
-    greeting = "";
-  } else {
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString("en-US", {
-      weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
-
-    greeting = `Hello ${moodleFirstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
-    botText.textContent = greeting;
-    saveHistory("", greeting);
-  }
-
-  if (!isIphone && greeting) {
-
-    console.log("SALUDO A ENVIAR:", greeting);
-
-    setTimeout(() => {
-      fetch("https://chatbot-xzhi.onrender.com/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: greeting })
-      })
-      .then(r => r.json())
-      .then(d => {
-        if (d.audio) playBackendTTS(greeting, d.audio);
-      });
-    }, 300);
-  }
-
-  localStorage.setItem("lastConnectionDate", today);
-});
 </script>
 
 </body>
