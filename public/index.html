@@ -192,12 +192,11 @@ startSessionBtn.onclick = async () => {
     silent.play().catch(()=>{});
   }
 
-  // 3. Reproducir saludo si es primera conexión del día
-  const today = getTodayDate();
-  const lastDate = localStorage.getItem("lastConnectionDate");
+  // 3. Reproducir saludo si existe texto
   const greeting = botText.textContent.trim();
+  console.log("GREETING EN START SESSION:", greeting);
 
-  if (lastDate !== today && greeting) {
+  if (greeting) {
     console.log("Reproduciendo saludo inicial:", greeting);
 
     fetch("https://chatbot-xzhi.onrender.com/tts", {
