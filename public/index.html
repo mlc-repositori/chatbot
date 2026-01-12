@@ -88,11 +88,8 @@
     <div>
       <h3>Chatbot de voz en inglés</h3>
 
-      <!-- NUEVO: Botón Start Session -->
+      <!-- Botón Start Session -->
       <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
-
-      <!-- Botón iPhone (solo visible en iPhone) -->
-      <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
 
       <!-- Botón hablar -->
       <button id="startBtn" disabled>🎤</button>
@@ -119,17 +116,28 @@ console.log("JS CARGADO");
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* ----------------------------------------------------------
-   CONFIGURAR BOTONES SEGÚN DISPOSITIVO
+   CONFIGURAR BOTONES
 ----------------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
-  if (isIphone) {
-    unlockBtn.style.display = "inline-block";
-    startBtn.disabled = true;
-  } else {
-    unlockBtn.style.display = "none";
-    startBtn.disabled = true;
-  }
+  startBtn.disabled = true;
 });
+
+/* ----------------------------------------------------------
+   FUNCIÓN UNIVERSAL PARA DESBLOQUEAR AUDIO (iPhone incluido)
+----------------------------------------------------------- */
+async function unlockAudio() {
+  if (!ttsContext) {
+    ttsContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (ttsContext.state === "suspended") {
+    await ttsContext.resume();
+  }
+
+  // Truco iPhone: reproducir un silencio
+  const silent = new Audio();
+  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
+  silent.play().catch(()=>{});
+}
 
 /* ----------------------------------------------------------
    DATOS MOODLE
@@ -203,30 +211,16 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION
+   START SESSION — desbloqueo universal + saludo inicial
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
 startSessionBtn.onclick = async () => {
+  console.log("Start Session pulsado");
 
-  console.log("Start Session pulsado — desbloqueando audio");
-
-  if (!ttsContext) {
-    ttsContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (ttsContext.state === "suspended") {
-    await ttsContext.resume();
-  }
-
-  if (isIphone) {
-    const silent = new Audio();
-    silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
-    silent.play().catch(()=>{});
-  }
+  await unlockAudio(); // <-- desbloqueo universal
 
   const greeting = botText.textContent.trim();
-  console.log("GREETING EN START SESSION:", greeting);
-
   if (greeting) {
     console.log("Reproduciendo saludo inicial:", greeting);
 
@@ -253,7 +247,6 @@ startSessionBtn.onclick = async () => {
    SALUDO INICIAL (solo texto)
 ----------------------------------------------------------- */
 window.addEventListener("load", () => {
-
   console.log("ENTRANDO EN window.onload (saludo inicial)");
 
   chooseBestVoice();
