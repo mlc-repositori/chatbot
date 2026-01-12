@@ -61,6 +61,7 @@
       transform: scale(0.98);
     }
 
+    
     /* Botón repetir 🔁 */
     .repeat-btn {
       background: none;
@@ -87,6 +88,7 @@
 
     <div>
       <h3>Chatbot de voz en inglés</h3>
+       <button onclick="testSound()">🔊 Test sonido</button>
 
       <!-- Botón Start Session -->
       <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
@@ -441,6 +443,24 @@ document.getElementById("repeatBtn").onclick = () => {
     console.log("No hay audio previo para repetir");
   }
 };
+  /*** BOTON PBA ***/
+  async function testSound() {
+  console.log("Test sonido pulsado");
+
+  if (!ttsContext) {
+    ttsContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (ttsContext.state === "suspended") {
+    await ttsContext.resume();
+  }
+
+  const osc = ttsContext.createOscillator();
+  osc.frequency.value = 440;
+  osc.connect(ttsContext.destination);
+  osc.start();
+  setTimeout(() => osc.stop(), 300);
+}
+
 </script>
 
 </body>
