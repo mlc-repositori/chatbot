@@ -217,33 +217,46 @@ function formatTime(seconds) {
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
-startSessionBtn.onclick = async () => {
+startSessionBtn.onclick = () => {
   console.log("Start Session pulsado");
 
-  await unlockAudio(); // <-- desbloqueo universal
-
-  const greeting = botText.textContent.trim();
-  if (greeting) {
-    console.log("Reproduciendo saludo inicial:", greeting);
-
-    fetch("https://chatbot-xzhi.onrender.com/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: greeting })
-    })
-    .then(r => r.json())
-    .then(d => {
-      if (d.audio) {
-        lastBotText = greeting;
-        lastBotAudio = d.audio;
-        playBackendTTS(greeting, d.audio);
-      }
-    });
+  // 🔊 DESBLOQUEO DIRECTO (iPhone)
+  if (!ttsContext) {
+    ttsContext = new (window.AudioContext || window.webkitAudioContext)();
   }
+  ttsContext.resume();
+
+  const silent = new Audio();
+  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
+  silent.play().catch(()=>{});
+
+  // 🔊 AHORA SÍ podemos hacer cosas async
+  setTimeout(() => {
+    reproducirSaludoInicial();
+  }, 150);
 
   startBtn.disabled = false;
   startSessionBtn.style.display = "none";
 };
+function reproducirSaludoInicial() {
+  const greeting = botText.textContent.trim();
+  if (!greeting) return;
+
+  fetch("https://chatbot-xzhi.onrender.com/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: greeting })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.audio) {
+      lastBotText = greeting;
+      lastBotAudio = d.audio;
+      playBackendTTS(greeting, d.audio);
+    }
+  });
+}
+
 
 /* ----------------------------------------------------------
    SALUDO INICIAL (solo texto)
