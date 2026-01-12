@@ -40,6 +40,7 @@
       margin: 4px 0;
     }
 
+    /* Botón Start Session */
     .start-session-btn {
       width: 100%;
       padding: 14px;
@@ -60,6 +61,7 @@
       transform: scale(0.98);
     }
 
+    /* Botón repetir 🔁 */
     .repeat-btn {
       background: none;
       border: none;
@@ -78,6 +80,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="chatbot-container">
     <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
@@ -85,14 +88,20 @@
     <div>
       <h3>Chatbot de voz en inglés</h3>
 
+      <!-- NUEVO: Botón Start Session -->
       <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
+      <!-- Botón iPhone (solo visible en iPhone) -->
+      <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
+
+      <!-- Botón hablar -->
       <button id="startBtn" disabled>🎤</button>
 
       <p><strong>Tú:</strong> <span id="userText"></span></p>
 
       <p><strong>Bot:</strong> <span id="botText"></span></p>
 
+      <!-- 🔁 Botón repetir -->
       <button id="repeatBtn" class="repeat-btn">🔁</button>
 
       <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
@@ -100,15 +109,31 @@
       <p id="timeRow" style="display:none;"><strong>Tiempo restante:</strong> <span id="timeSpent"></span></p>
     </div>
   </div>
+
 <script>
 console.log("JS CARGADO");
 
+/* ----------------------------------------------------------
+   DETECTAR IPHONE
+----------------------------------------------------------- */
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+/* ----------------------------------------------------------
+   CONFIGURAR BOTONES SEGÚN DISPOSITIVO
+----------------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
-  startBtn.disabled = true;
+  if (isIphone) {
+    unlockBtn.style.display = "inline-block";
+    startBtn.disabled = true;
+  } else {
+    unlockBtn.style.display = "none";
+    startBtn.disabled = true;
+  }
 });
 
+/* ----------------------------------------------------------
+   DATOS MOODLE
+----------------------------------------------------------- */
 const params = new URLSearchParams(window.location.search);
 const moodleFirstname = params.get("firstname") || "Anon";
 const moodleLastname  = params.get("lastname")  || "User";
@@ -119,10 +144,16 @@ if (!moodleUserId) {
   moodleUserId = "fallback_" + (moodleFirstname + "_" + moodleLastname).toLowerCase();
 }
 
+/* ----------------------------------------------------------
+   VOZ (placeholder)
+----------------------------------------------------------- */
 function chooseBestVoice() {
-  voiceName.textContent = "Brenda (OpenAI TTS)";
+  voiceName.textContent = "OpenAI TTS (único)";
 }
 
+/* ----------------------------------------------------------
+   VARIABLES
+----------------------------------------------------------- */
 let mediaRecorder = null;
 let audioChunks = [];
 let mediaStream = null;
@@ -138,6 +169,9 @@ const timeSpent = document.getElementById("timeSpent");
 const timeRow = document.getElementById("timeRow");
 const avatar = document.getElementById("avatar");
 
+/* ----------------------------------------------------------
+   HISTORIAL
+----------------------------------------------------------- */
 function getTodayDate() {
   return new Date().toISOString().split("T")[0];
 }
@@ -159,6 +193,9 @@ function loadLastMessage() {
   }
 }
 
+/* ----------------------------------------------------------
+   FORMATEAR TIEMPO
+----------------------------------------------------------- */
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -166,34 +203,47 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION — desbloqueo + saludo inicial
+   START SESSION
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
-startSessionBtn.onclick = () => {
-  console.log("Start Session pulsado");
+startSessionBtn.onclick = async () => {
+
+  console.log("Start Session pulsado — desbloqueando audio");
 
   if (!ttsContext) {
     ttsContext = new (window.AudioContext || window.webkitAudioContext)();
   }
-
-  try {
-    ttsContext.resume();
-  } catch (e) {
-    console.log("Error en resume:", e);
+  if (ttsContext.state === "suspended") {
+    await ttsContext.resume();
   }
 
-  try {
-    const silent = document.createElement("audio");
+  if (isIphone) {
+    const silent = new Audio();
     silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
-    silent.play().catch(err => console.log("Silent play blocked:", err));
-  } catch (e) {
-    console.log("Error al reproducir silencio:", e);
+    silent.play().catch(()=>{});
   }
 
-  setTimeout(() => {
-    reproducirSaludoInicial();
-  }, 150);
+  const greeting = botText.textContent.trim();
+  console.log("GREETING EN START SESSION:", greeting);
+
+  if (greeting) {
+    console.log("Reproduciendo saludo inicial:", greeting);
+
+    fetch("https://chatbot-xzhi.onrender.com/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: greeting })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.audio) {
+        lastBotText = greeting;
+        lastBotAudio = d.audio;
+        playBackendTTS(greeting, d.audio);
+      }
+    });
+  }
 
   startBtn.disabled = false;
   startSessionBtn.style.display = "none";
@@ -204,48 +254,32 @@ startSessionBtn.onclick = () => {
 ----------------------------------------------------------- */
 window.addEventListener("load", () => {
 
+  console.log("ENTRANDO EN window.onload (saludo inicial)");
+
   chooseBestVoice();
 
   const today = getTodayDate();
   const lastDate = localStorage.getItem("lastConnectionDate");
 
+  let greeting = "";
+
   if (lastDate === today) {
     loadLastMessage();
-    window.initialGreeting = "";
+    greeting = "";
   } else {
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", {
       weekday: "long", year: "numeric", month: "long", day: "numeric"
     });
 
-    window.initialGreeting =
-      `Hello ${moodleFirstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
-
-    botText.textContent = window.initialGreeting;
-    saveHistory("", window.initialGreeting);
+    greeting = `Hello ${moodleFirstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+    botText.textContent = greeting;
+    saveHistory("", greeting);
   }
 
   localStorage.setItem("lastConnectionDate", today);
 });
 
-function reproducirSaludoInicial() {
-  const greeting = window.initialGreeting;
-  if (!greeting) return;
-
-  fetch("https://chatbot-xzhi.onrender.com/tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: greeting })
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.audio) {
-      lastBotText = greeting;
-      lastBotAudio = d.audio;
-      playBackendTTS(greeting, d.audio);
-    }
-  });
-}
 /* ----------------------------------------------------------
    BOTÓN HABLAR
 ----------------------------------------------------------- */
@@ -360,16 +394,10 @@ startBtn.onclick = async () => {
 async function playBackendTTS(text, base64Audio) {
   try {
     if (!ttsContext) {
-      console.warn("ttsContext no inicializado; ¿se pulsó Start Session?");
-      return;
+      ttsContext = new (window.AudioContext || window.webkitAudioContext)();
     }
-
     if (ttsContext.state === "suspended") {
-      try {
-        await ttsContext.resume();
-      } catch (e) {
-        console.log("Error reanudando ttsContext dentro de playBackendTTS:", e);
-      }
+      await ttsContext.resume();
     }
 
     const arrayBuffer = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0)).buffer;
@@ -414,7 +442,10 @@ async function playBackendTTS(text, base64Audio) {
 ----------------------------------------------------------- */
 document.getElementById("repeatBtn").onclick = () => {
   if (lastBotAudio) {
+    console.log("Reproduciendo repetición:", lastBotText);
     playBackendTTS(lastBotText, lastBotAudio);
+  } else {
+    console.log("No hay audio previo para repetir");
   }
 };
 </script>
