@@ -78,7 +78,6 @@
     }
   </style>
 </head>
-
 <body>
   <div class="chatbot-container">
     <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
@@ -101,7 +100,6 @@
       <p id="timeRow" style="display:none;"><strong>Tiempo restante:</strong> <span id="timeSpent"></span></p>
     </div>
   </div>
-
 <script>
 console.log("JS CARGADO");
 
@@ -167,6 +165,9 @@ function formatTime(seconds) {
   return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
 }
 
+/* ----------------------------------------------------------
+   START SESSION — desbloqueo + saludo inicial
+----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
 startSessionBtn.onclick = () => {
@@ -198,8 +199,37 @@ startSessionBtn.onclick = () => {
   startSessionBtn.style.display = "none";
 };
 
+/* ----------------------------------------------------------
+   SALUDO INICIAL (solo texto)
+----------------------------------------------------------- */
+window.addEventListener("load", () => {
+
+  chooseBestVoice();
+
+  const today = getTodayDate();
+  const lastDate = localStorage.getItem("lastConnectionDate");
+
+  if (lastDate === today) {
+    loadLastMessage();
+    window.initialGreeting = "";
+  } else {
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric"
+    });
+
+    window.initialGreeting =
+      `Hello ${moodleFirstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+
+    botText.textContent = window.initialGreeting;
+    saveHistory("", window.initialGreeting);
+  }
+
+  localStorage.setItem("lastConnectionDate", today);
+});
+
 function reproducirSaludoInicial() {
-  const greeting = botText.textContent.trim();
+  const greeting = window.initialGreeting;
   if (!greeting) return;
 
   fetch("https://chatbot-xzhi.onrender.com/tts", {
@@ -216,33 +246,9 @@ function reproducirSaludoInicial() {
     }
   });
 }
-
-window.addEventListener("load", () => {
-
-  chooseBestVoice();
-
-  const today = getTodayDate();
-  const lastDate = localStorage.getItem("lastConnectionDate");
-
-  let greeting = "";
-
-  if (lastDate === today) {
-    loadLastMessage();
-    greeting = "";
-  } else {
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString("en-US", {
-      weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
-
-    greeting = `Hello ${moodleFirstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
-    botText.textContent = greeting;
-    saveHistory("", greeting);
-  }
-
-  localStorage.setItem("lastConnectionDate", today);
-});
-
+/* ----------------------------------------------------------
+   BOTÓN HABLAR
+----------------------------------------------------------- */
 startBtn.onclick = async () => {
 
   if (!mediaStream) {
@@ -348,6 +354,9 @@ startBtn.onclick = async () => {
   checkSilence();
 };
 
+/* ----------------------------------------------------------
+   TTS BACKEND — WebAudio
+----------------------------------------------------------- */
 async function playBackendTTS(text, base64Audio) {
   try {
     if (!ttsContext) {
@@ -400,6 +409,9 @@ async function playBackendTTS(text, base64Audio) {
   }
 }
 
+/* ----------------------------------------------------------
+   BOTÓN REPETIR 🔁
+----------------------------------------------------------- */
 document.getElementById("repeatBtn").onclick = () => {
   if (lastBotAudio) {
     playBackendTTS(lastBotText, lastBotAudio);
