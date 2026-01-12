@@ -40,7 +40,6 @@
       margin: 4px 0;
     }
 
-    /* Botón Start Session */
     .start-session-btn {
       width: 100%;
       padding: 14px;
@@ -61,7 +60,6 @@
       transform: scale(0.98);
     }
 
-    /* Botón repetir 🔁 */
     .repeat-btn {
       background: none;
       border: none;
@@ -88,17 +86,14 @@
     <div>
       <h3>Chatbot de voz en inglés</h3>
 
-      <!-- Botón Start Session -->
       <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
-      <!-- Botón hablar -->
       <button id="startBtn" disabled>🎤</button>
 
       <p><strong>Tú:</strong> <span id="userText"></span></p>
 
       <p><strong>Bot:</strong> <span id="botText"></span></p>
 
-      <!-- 🔁 Botón repetir -->
       <button id="repeatBtn" class="repeat-btn">🔁</button>
 
       <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
@@ -110,21 +105,12 @@
 <script>
 console.log("JS CARGADO");
 
-/* ----------------------------------------------------------
-   DETECTAR IPHONE
------------------------------------------------------------ */
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-/* ----------------------------------------------------------
-   DESHABILITAR BOTÓN HABLAR AL CARGAR
------------------------------------------------------------ */
 window.addEventListener("DOMContentLoaded", () => {
   startBtn.disabled = true;
 });
 
-/* ----------------------------------------------------------
-   DATOS MOODLE
------------------------------------------------------------ */
 const params = new URLSearchParams(window.location.search);
 const moodleFirstname = params.get("firstname") || "Anon";
 const moodleLastname  = params.get("lastname")  || "User";
@@ -135,21 +121,15 @@ if (!moodleUserId) {
   moodleUserId = "fallback_" + (moodleFirstname + "_" + moodleLastname).toLowerCase();
 }
 
-/* ----------------------------------------------------------
-   VOZ (placeholder)
------------------------------------------------------------ */
 function chooseBestVoice() {
   voiceName.textContent = "OpenAI TTS (único)";
 }
 
-/* ----------------------------------------------------------
-   VARIABLES
------------------------------------------------------------ */
 let mediaRecorder = null;
 let audioChunks = [];
 let mediaStream = null;
-let audioContext = null;   // para el micrófono
-let ttsContext = null;     // para el TTS (solo se crea en Start Session)
+let audioContext = null;
+let ttsContext = null;
 
 let lastBotAudio = null;
 let lastBotText = "";
@@ -160,9 +140,6 @@ const timeSpent = document.getElementById("timeSpent");
 const timeRow = document.getElementById("timeRow");
 const avatar = document.getElementById("avatar");
 
-/* ----------------------------------------------------------
-   HISTORIAL
------------------------------------------------------------ */
 function getTodayDate() {
   return new Date().toISOString().split("T")[0];
 }
@@ -184,9 +161,6 @@ function loadLastMessage() {
   }
 }
 
-/* ----------------------------------------------------------
-   FORMATEAR TIEMPO
------------------------------------------------------------ */
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -194,77 +168,62 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION — crear y desbloquear TTS + saludo
+   START SESSION — desbloqueo real como el botón de hablar
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
-startSessionBtn.onclick = () => {
-  console.log("Start Session pulsado");
+startSessionBtn.onclick = async () => {
+  console.log("Start Session pulsado — desbloqueando audio como el botón de hablar");
 
-  // Crear AudioContext de TTS SOLO aquí (gesto humano)
   if (!ttsContext) {
     ttsContext = new (window.AudioContext || window.webkitAudioContext)();
   }
+  if (ttsContext.state === "suspended") {
+    await ttsContext.resume();
+  }
 
-  // Intentar reanudar por si estuviera suspendido
   try {
-    if (ttsContext.state === "suspended") {
-      ttsContext.resume();
+    if (!mediaStream) {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     }
-  } catch (e) {
-    console.log("Error al hacer resume en ttsContext:", e);
+
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+
+    console.log("Audio desbloqueado correctamente en iPhone");
+  } catch (err) {
+    console.warn("Error desbloqueando audio en Start Session:", err);
   }
 
-  // Truco para iPhone: reproducir un silencio en el mismo gesto
-  try {
-    const silent = document.createElement("audio");
-    silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
-    silent.play().catch(err => console.log("Silent play blocked:", err));
-  } catch (e) {
-    console.log("Error al reproducir silencio:", e);
+  const greeting = botText.textContent.trim();
+  if (greeting) {
+    fetch("https://chatbot-xzhi.onrender.com/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: greeting })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.audio) {
+        lastBotText = greeting;
+        lastBotAudio = d.audio;
+        playBackendTTS(greeting, d.audio);
+      }
+    });
   }
-
-  // Después de desbloquear, reproducimos el saludo inicial si existe
-  setTimeout(() => {
-    reproducirSaludoInicial();
-  }, 150);
 
   startBtn.disabled = false;
   startSessionBtn.style.display = "none";
 };
 
 /* ----------------------------------------------------------
-   FUNCION PARA REPRODUCIR EL SALUDO INICIAL (después de desbloqueo)
------------------------------------------------------------ */
-function reproducirSaludoInicial() {
-  const greeting = botText.textContent.trim();
-  console.log("GREETING EN START SESSION:", greeting);
-  if (!greeting) return;
-
-  console.log("Reproduciendo saludo inicial:", greeting);
-
-  fetch("https://chatbot-xzhi.onrender.com/tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: greeting })
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.audio) {
-      lastBotText = greeting;
-      lastBotAudio = d.audio;
-      playBackendTTS(greeting, d.audio);
-    }
-  })
-  .catch(err => console.warn("Error en TTS de saludo:", err));
-}
-
-/* ----------------------------------------------------------
    SALUDO INICIAL (solo texto)
 ----------------------------------------------------------- */
 window.addEventListener("load", () => {
-
-  console.log("ENTRANDO EN window.onload (saludo inicial)");
 
   chooseBestVoice();
 
@@ -443,8 +402,7 @@ async function playBackendTTS(text, base64Audio) {
       .then(d => {
         const remaining = Math.max(300 - d.total, 0);
         timeSpent.textContent = formatTime(remaining);
-      })
-      .catch(err => console.warn("Error actualizando ttsTime:", err));
+      });
     };
 
     source.start(0);
@@ -459,10 +417,7 @@ async function playBackendTTS(text, base64Audio) {
 ----------------------------------------------------------- */
 document.getElementById("repeatBtn").onclick = () => {
   if (lastBotAudio) {
-    console.log("Reproduciendo repetición:", lastBotText);
     playBackendTTS(lastBotText, lastBotAudio);
-  } else {
-    console.log("No hay audio previo para repetir");
   }
 };
 </script>
