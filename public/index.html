@@ -168,14 +168,13 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION — desbloqueo sin pedir micrófono
+   START SESSION — desbloqueo real como el botón de hablar
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
 startSessionBtn.onclick = async () => {
-  console.log("Start Session pulsado — desbloqueo sin pedir micrófono");
+  console.log("Start Session pulsado — desbloqueando audio como el botón de hablar");
 
-  // 1. Crear AudioContext de TTS
   if (!ttsContext) {
     ttsContext = new (window.AudioContext || window.webkitAudioContext)();
   }
@@ -183,16 +182,23 @@ startSessionBtn.onclick = async () => {
     await ttsContext.resume();
   }
 
-  // 2. Truco iPhone: reproducir silencio
   try {
-    const silent = document.createElement("audio");
-    silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
-    silent.play().catch(err => console.log("Silent play blocked:", err));
-  } catch (e) {
-    console.log("Error al reproducir silencio:", e);
+    if (!mediaStream) {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+
+    console.log("Audio desbloqueado correctamente en iPhone");
+  } catch (err) {
+    console.warn("Error desbloqueando audio en Start Session:", err);
   }
 
-  // 3. Reproducir saludo inicial
   const greeting = botText.textContent.trim();
   if (greeting) {
     fetch("https://chatbot-xzhi.onrender.com/tts", {
