@@ -61,7 +61,6 @@
       transform: scale(0.98);
     }
 
-    
     /* Botón repetir 🔁 */
     .repeat-btn {
       background: none;
@@ -88,10 +87,12 @@
 
     <div>
       <h3>Chatbot de voz en inglés</h3>
-       <button onclick="testSound()">🔊 Test sonido</button>
 
-      <!-- Botón Start Session -->
+      <!-- NUEVO: Botón Start Session -->
       <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
+
+      <!-- Botón iPhone (solo visible en iPhone) -->
+      <button id="unlockBtn" style="display:none;">🔊 Activar sonido</button>
 
       <!-- Botón hablar -->
       <button id="startBtn" disabled>🎤</button>
@@ -118,28 +119,17 @@ console.log("JS CARGADO");
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /* ----------------------------------------------------------
-   CONFIGURAR BOTONES
+   CONFIGURAR BOTONES SEGÚN DISPOSITIVO
 ----------------------------------------------------------- */
 window.addEventListener("DOMContentLoaded", () => {
-  startBtn.disabled = true;
+  if (isIphone) {
+    unlockBtn.style.display = "inline-block";
+    startBtn.disabled = true;
+  } else {
+    unlockBtn.style.display = "none";
+    startBtn.disabled = true;
+  }
 });
-
-/* ----------------------------------------------------------
-   FUNCIÓN UNIVERSAL PARA DESBLOQUEAR AUDIO (iPhone incluido)
------------------------------------------------------------ */
-async function unlockAudio() {
-  if (!ttsContext) {
-    ttsContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (ttsContext.state === "suspended") {
-    await ttsContext.resume();
-  }
-
-  // Truco iPhone: reproducir un silencio
-  const silent = new Audio();
-  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
-  silent.play().catch(()=>{});
-}
 
 /* ----------------------------------------------------------
    DATOS MOODLE
@@ -213,55 +203,57 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION — desbloqueo universal + saludo inicial
+   START SESSION
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
-startSessionBtn.onclick = () => {
-  console.log("Start Session pulsado");
+startSessionBtn.onclick = async () => {
 
-  // 🔊 DESBLOQUEO DIRECTO (iPhone)
+  console.log("Start Session pulsado — desbloqueando audio");
+
   if (!ttsContext) {
     ttsContext = new (window.AudioContext || window.webkitAudioContext)();
   }
-  ttsContext.resume();
+  if (ttsContext.state === "suspended") {
+    await ttsContext.resume();
+  }
 
-  const silent = new Audio();
-  silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
-  silent.play().catch(()=>{});
+  if (isIphone) {
+    const silent = new Audio();
+    silent.src = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGlin...";
+    silent.play().catch(()=>{});
+  }
 
-  // 🔊 AHORA SÍ podemos hacer cosas async
-  setTimeout(() => {
-    reproducirSaludoInicial();
-  }, 150);
+  const greeting = botText.textContent.trim();
+  console.log("GREETING EN START SESSION:", greeting);
+
+  if (greeting) {
+    console.log("Reproduciendo saludo inicial:", greeting);
+
+    fetch("https://chatbot-xzhi.onrender.com/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: greeting })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.audio) {
+        lastBotText = greeting;
+        lastBotAudio = d.audio;
+        playBackendTTS(greeting, d.audio);
+      }
+    });
+  }
 
   startBtn.disabled = false;
   startSessionBtn.style.display = "none";
 };
-function reproducirSaludoInicial() {
-  const greeting = botText.textContent.trim();
-  if (!greeting) return;
-
-  fetch("https://chatbot-xzhi.onrender.com/tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: greeting })
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.audio) {
-      lastBotText = greeting;
-      lastBotAudio = d.audio;
-      playBackendTTS(greeting, d.audio);
-    }
-  });
-}
-
 
 /* ----------------------------------------------------------
    SALUDO INICIAL (solo texto)
 ----------------------------------------------------------- */
 window.addEventListener("load", () => {
+
   console.log("ENTRANDO EN window.onload (saludo inicial)");
 
   chooseBestVoice();
@@ -456,24 +448,6 @@ document.getElementById("repeatBtn").onclick = () => {
     console.log("No hay audio previo para repetir");
   }
 };
-  /*** BOTON PBA ***/
-  async function testSound() {
-  console.log("Test sonido pulsado");
-
-  if (!ttsContext) {
-    ttsContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (ttsContext.state === "suspended") {
-    await ttsContext.resume();
-  }
-
-  const osc = ttsContext.createOscillator();
-  osc.frequency.value = 440;
-  osc.connect(ttsContext.destination);
-  osc.start();
-  setTimeout(() => osc.stop(), 300);
-}
-
 </script>
 
 </body>
