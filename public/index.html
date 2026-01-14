@@ -41,11 +41,6 @@
       font-size: clamp(18px, 3.4vw, 24px);
       margin: 0 0 10px 0;
     }
-    .chatbot-container button {
-      font-size: clamp(16px, 3vw, 20px);
-      padding: 8px 12px;
-      margin-bottom: 10px;
-    }
     .chatbot-container p {
       font-size: clamp(16px, 2.8vw, 20px);
       margin: 4px 0;
@@ -67,29 +62,53 @@
       opacity: 0.85;
       transform: scale(1.02);
     }
-    .start-session-btn:active {
-      transform: scale(0.98);
+
+    /* CONTROLES DE VOZ: MICRO + REPETIR */
+    .voice-controls {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 15px;
     }
 
-    .repeat-btn {
-      background: none;
+    /* Botón de micrófono redondo */
+    #startBtn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background-color: #000;
+      color: #fff;
       border: none;
       font-size: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      margin-top: 4px;
-      padding: 4px;
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
-    .repeat-btn:hover {
+    #startBtn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    #startBtn:hover:not(:disabled) {
+      transform: scale(1.05);
+    }
+
+    /* Botón repetir */
+    #repeatBtn {
+      background: none;
+      border: none;
+      font-size: 36px;
+      cursor: pointer;
+      padding: 8px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    #repeatBtn:hover {
       transform: scale(1.15);
       opacity: 0.8;
     }
-    .repeat-btn:active {
-      transform: scale(0.95);
-    }
   </style>
 </head>
-
 
 <body>
   <div class="chatbot-container">
@@ -100,17 +119,20 @@
 
       <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
-      <button id="startBtn" disabled>🎤</button>
+      <!-- NUEVO CONTENEDOR: MICRO + REPETIR -->
+      <div class="voice-controls">
+        <button id="startBtn" disabled>🎤</button>
+        <button id="repeatBtn">🔁</button>
+      </div>
 
       <p><strong>Tú:</strong> <span id="userText"></span></p>
-
       <p><strong>Bot:</strong> <span id="botText"></span></p>
-
-      <button id="repeatBtn" class="repeat-btn">🔁</button>
 
       <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
 
-      <p id="timeRow" style="display:none;"><strong>Tiempo restante:</strong> <span id="timeSpent"></span></p>
+      <p id="timeRow" style="display:none;">
+        <strong>Tiempo restante:</strong> <span id="timeSpent"></span>
+      </p>
     </div>
   </div>
 
