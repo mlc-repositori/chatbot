@@ -128,7 +128,7 @@ const moodleFirstname = params.get("firstname") || "Anon";
 const moodleLastname  = params.get("lastname")  || "User";
 const email           = params.get("email")     || null;
 
-let moodleUserId = params.get("userid");
+let moodleUserId = params.get("userId");
 if (!moodleUserId) {
   moodleUserId = "fallback_" + (moodleFirstname + "_" + moodleLastname).toLowerCase();
 }
