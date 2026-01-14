@@ -230,6 +230,8 @@ function advancePhase(ip) {
 // 🤖 RUTA CHAT — GPT‑4o‑mini + TTS
 // ============================================================
 app.post("/chat", async (req, res) => {
+  console.log("📥 BODY CHAT:", req.body);
+
   const { message, history, firstname, lastname, userId, email } = req.body;
 
   await supabase.from("users").upsert({ userId, firstname, lastname, email });
@@ -363,6 +365,8 @@ app.post("/tts", async (req, res) => {
 // ⏱ RUTA PARA SUMAR TIEMPO
 // ============================================================
 app.post("/ttsTime", async (req, res) => {
+  console.log("📥 BODY TTS:", req.body);
+
   const { seconds, userId } = req.body;
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
