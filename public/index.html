@@ -58,28 +58,24 @@
       margin-bottom: 15px;
       transition: opacity 0.3s ease, transform 0.2s ease;
     }
-    .start-session-btn:hover {
-      opacity: 0.85;
-      transform: scale(1.02);
-    }
 
     /* CONTROLES DE VOZ: MICRO + REPETIR */
     .voice-controls {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
       margin-bottom: 15px;
     }
 
-    /* Botón de micrófono redondo */
+    /* Botón de micrófono redondo (más pequeño + azul) */
     #startBtn {
-      width: 70px;
-      height: 70px;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
-      background-color: #000;
+      background-color: #007BFF; /* azul */
       color: #fff;
       border: none;
-      font-size: 32px;
+      font-size: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -94,13 +90,13 @@
       transform: scale(1.05);
     }
 
-    /* Botón repetir */
+    /* Botón repetir (ligeramente más pequeño) */
     #repeatBtn {
       background: none;
       border: none;
-      font-size: 36px;
+      font-size: 30px;
       cursor: pointer;
-      padding: 8px;
+      padding: 6px;
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
     #repeatBtn:hover {
@@ -119,7 +115,7 @@
 
       <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
-      <!-- NUEVO CONTENEDOR: MICRO + REPETIR -->
+      <!-- CONTENEDOR: MICRO + REPETIR -->
       <div class="voice-controls">
         <button id="startBtn" disabled>🎤</button>
         <button id="repeatBtn">🔁</button>
