@@ -59,7 +59,6 @@
       transition: opacity 0.3s ease, transform 0.2s ease;
     }
 
-    /* CONTROLES DE VOZ: MICRO + REPETIR */
     .voice-controls {
       display: flex;
       align-items: center;
@@ -67,12 +66,11 @@
       margin-bottom: 15px;
     }
 
-    /* Botón de micrófono redondo (más pequeño + azul) */
     #startBtn {
       width: 58px;
       height: 58px;
       border-radius: 50%;
-      background-color: #007BFF; /* azul */
+      background-color: #007BFF;
       color: #fff;
       border: none;
       font-size: 28px;
@@ -90,7 +88,6 @@
       transform: scale(1.05);
     }
 
-    /* Botón repetir (ligeramente más pequeño) */
     #repeatBtn {
       background: none;
       border: none;
@@ -107,6 +104,27 @@
 </head>
 
 <body>
+
+<!-- 🔐 PROTECCIÓN DE SESIÓN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabaseClient = window.supabase.createClient(
+  "https://axggbupenrrsqjhjhnbg.supabase.co",
+  "sb-publishable-JAgRBxG15HHGxFdNXwsr4w_kSKBaIx1"
+);
+
+let session = null;
+
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  session = data.session;
+
+  if (!session) {
+    window.location.href = "login.html";
+  }
+})();
+</script>
+
   <div class="chatbot-container">
     <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
 
@@ -115,7 +133,6 @@
 
       <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
-      <!-- CONTENEDOR: MICRO + REPETIR -->
       <div class="voice-controls">
         <button id="startBtn" disabled>🎤</button>
         <button id="repeatBtn">🔁</button>
@@ -140,16 +157,6 @@ const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 window.addEventListener("DOMContentLoaded", () => {
   startBtn.disabled = true;
 });
-
-const params = new URLSearchParams(window.location.search);
-const moodleFirstname = params.get("firstname") || "Anon";
-const moodleLastname  = params.get("lastname")  || "User";
-const email           = params.get("email")     || null;
-
-let moodleUserId = params.get("userId");
-if (!moodleUserId) {
-  moodleUserId = "fallback_" + (moodleFirstname + "_" + moodleLastname).toLowerCase();
-}
 
 function chooseBestVoice() {
   voiceName.textContent = "OpenAI TTS (único)";
@@ -198,13 +205,11 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION — desbloqueo real como el botón de hablar
+   START SESSION
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
 startSessionBtn.onclick = async () => {
-  console.log("Start Session pulsado — desbloqueando audio como el botón de hablar");
-
   if (!ttsContext) {
     ttsContext = new (window.AudioContext || window.webkitAudioContext)();
   }
@@ -223,17 +228,18 @@ startSessionBtn.onclick = async () => {
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
     source.connect(analyser);
-
-    console.log("Audio desbloqueado correctamente en iPhone");
   } catch (err) {
-    console.warn("Error desbloqueando audio en Start Session:", err);
+    console.warn("Error desbloqueando audio:", err);
   }
 
   const greeting = botText.textContent.trim();
   if (greeting) {
     fetch("https://chatbot-xzhi.onrender.com/tts", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
       body: JSON.stringify({ text: greeting })
     })
     .then(r => r.json())
@@ -251,7 +257,7 @@ startSessionBtn.onclick = async () => {
 };
 
 /* ----------------------------------------------------------
-   SALUDO INICIAL (solo texto)
+   SALUDO INICIAL
 ----------------------------------------------------------- */
 window.addEventListener("load", () => {
 
@@ -264,14 +270,13 @@ window.addEventListener("load", () => {
 
   if (lastDate === today) {
     loadLastMessage();
-    greeting = "";
   } else {
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", {
       weekday: "long", year: "numeric", month: "long", day: "numeric"
     });
 
-    greeting = `Hello ${moodleFirstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+    greeting = `Hello! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
     botText.textContent = greeting;
     saveHistory("", greeting);
   }
@@ -302,8 +307,12 @@ startBtn.onclick = async () => {
 
     const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt", {
       method: "POST",
+      headers: {
+        "Authorization": `Bearer ${session.access_token}`
+      },
       body: formData
     });
+
     const sttData = await sttRes.json();
     const transcript = sttData.text || "";
     userText.textContent = transcript;
@@ -313,12 +322,11 @@ startBtn.onclick = async () => {
 
     const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
       body: JSON.stringify({
-        userId: moodleUserId,
-        firstname: moodleFirstname,
-        lastname: moodleLastname,
-        email: email,
         message: transcript,
         history: last3
       })
@@ -422,9 +430,11 @@ async function playBackendTTS(text, base64Audio) {
 
       fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
-          userId: moodleUserId,
           seconds: ttsDuration
         })
       })
@@ -451,6 +461,7 @@ document.getElementById("repeatBtn").onclick = () => {
   }
 };
 </script>
+
 <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
