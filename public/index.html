@@ -256,33 +256,6 @@ startSessionBtn.onclick = async () => {
   startSessionBtn.style.display = "none";
 };
 
-/* ----------------------------------------------------------
-   SALUDO INICIAL
------------------------------------------------------------ */
-window.addEventListener("load", () => {
-
-  chooseBestVoice();
-
-  const today = getTodayDate();
-  const lastDate = localStorage.getItem("lastConnectionDate");
-
-  let greeting = "";
-
-  if (lastDate === today) {
-    loadLastMessage();
-  } else {
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString("en-US", {
-      weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
-
-    greeting = `Hello! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
-    botText.textContent = greeting;
-    saveHistory("", greeting);
-  }
-
-  localStorage.setItem("lastConnectionDate", today);
-});
 
 /* ----------------------------------------------------------
    BOTÓN HABLAR
