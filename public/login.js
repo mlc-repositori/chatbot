@@ -1,5 +1,5 @@
 // Inicializa Supabase
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   "https://axggbupenrrsqjhjhnbg.supabase.co",
   "sb_publishable_JAgRBxG15HHGxFdNXwsr4w_kSKBaIx1"
 );
@@ -30,7 +30,7 @@ loginBtn.onclick = async () => {
   }
 
   // Login con Supabase Auth
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password
   });
