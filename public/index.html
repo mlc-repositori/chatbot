@@ -198,14 +198,48 @@ function loadLastMessage() {
   }
 }
 
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-}
+/* ----------------------------------------------------------
+   ⭐ SALUDO INICIAL — RESTAURADO (FRONTEND)
+----------------------------------------------------------- */
+window.addEventListener("load", async () => {
+
+  chooseBestVoice();
+
+  // Obtener firstname real desde Supabase
+  const { data } = await supabaseClient.auth.getUser();
+  const firstname = data?.user?.user_metadata?.firstname || "student";
+
+  const today = getTodayDate();
+  const lastDate = localStorage.getItem("lastConnectionDate");
+
+  let greeting = "";
+
+  if (lastDate === today) {
+    // No es la primera vez del día → cargar último mensaje del bot
+    loadLastMessage();
+    greeting = "";
+  } else {
+    // Primera vez del día → generar saludo exacto
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric"
+    });
+
+    greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+
+    // Mostrar saludo en pantalla
+    botText.textContent = greeting;
+
+    // Guardarlo en historial del día
+    saveHistory("", greeting);
+  }
+
+  // Guardar fecha de última conexión
+  localStorage.setItem("lastConnectionDate", today);
+});
 
 /* ----------------------------------------------------------
-   START SESSION — DESBLOQUEO + SALUDO DEL BACKEND
+   START SESSION — DESBLOQUEO + REPRODUCCIÓN DEL SALUDO
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
@@ -232,28 +266,24 @@ startSessionBtn.onclick = async () => {
     console.warn("Error desbloqueando audio:", err);
   }
 
-  // 🔥 Pedir saludo inicial al backend
-  fetch("https://chatbot-xzhi.onrender.com/chat", {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`
-    },
-    body: JSON.stringify({
-      message: "",
-      history: []
+  // ⭐ REPRODUCIR EL SALUDO O EL ÚLTIMO MENSAJE DEL BOT
+  const greeting = botText.textContent.trim();
+  if (greeting) {
+    fetch("https://chatbot-xzhi.onrender.com/tts", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ text: greeting })
     })
-  })
-  .then(r => r.json())
-  .then(data => {
-    const response = data.reply || "";
-    botText.textContent = response;
-
-    lastBotText = response;
-    lastBotAudio = data.audio;
-
-    playBackendTTS(response, data.audio);
-  });
+    .then(r => r.json())
+    .then(data => {
+      lastBotText = greeting;
+      lastBotAudio = data.audio;
+      playBackendTTS(greeting, data.audio);
+    });
+  }
 
   startBtn.disabled = false;
   startSessionBtn.style.display = "none";
