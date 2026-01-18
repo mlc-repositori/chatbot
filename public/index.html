@@ -205,7 +205,7 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION
+   START SESSION — DESBLOQUEO + SALUDO DEL BACKEND
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
@@ -232,57 +232,33 @@ startSessionBtn.onclick = async () => {
     console.warn("Error desbloqueando audio:", err);
   }
 
-  const greeting = botText.textContent.trim();
-  if (greeting) {
-    fetch("https://chatbot-xzhi.onrender.com/tts", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ text: greeting })
+  // 🔥 Pedir saludo inicial al backend
+  fetch("https://chatbot-xzhi.onrender.com/chat", {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({
+      message: "",
+      history: []
     })
-    .then(r => r.json())
-    .then(d => {
-      if (d.audio) {
-        lastBotText = greeting;
-        lastBotAudio = d.audio;
-        playBackendTTS(greeting, d.audio);
-      }
-    });
-  }
+  })
+  .then(r => r.json())
+  .then(data => {
+    const response = data.reply || "";
+    botText.textContent = response;
+
+    lastBotText = response;
+    lastBotAudio = data.audio;
+
+    playBackendTTS(response, data.audio);
+  });
 
   startBtn.disabled = false;
   startSessionBtn.style.display = "none";
 };
 
-/* ----------------------------------------------------------
-   SALUDO INICIAL
------------------------------------------------------------ */
-window.addEventListener("load", () => {
-
-  chooseBestVoice();
-
-  const today = getTodayDate();
-  const lastDate = localStorage.getItem("lastConnectionDate");
-
-  let greeting = "";
-
-  if (lastDate === today) {
-    loadLastMessage();
-  } else {
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString("en-US", {
-      weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
-
-    greeting = `Hello! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
-    botText.textContent = greeting;
-    saveHistory("", greeting);
-  }
-
-  localStorage.setItem("lastConnectionDate", today);
-});
 /* ----------------------------------------------------------
    BOTÓN HABLAR
 ----------------------------------------------------------- */
