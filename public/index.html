@@ -345,7 +345,18 @@ startBtn.onclick = async () => {
 
     lastBotText = response;
     lastBotAudio = data.audio;
+    
+// ⭐ FIX: iOS/Android bloquean audio si no reanudamos el contexto
+if (ttsContext && ttsContext.state === "suspended") {
+  try {
+    await ttsContext.resume();
+  } catch (e) {
+    console.warn("No se pudo reanudar ttsContext:", e);
+  }
+}
 
+
+    
     const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
