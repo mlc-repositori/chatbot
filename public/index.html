@@ -122,24 +122,6 @@ let session = null;
   if (!session) {
     window.location.href = "login.html";
   }
-  (async () => {
-  const { data } = await supabaseClient.auth.getSession();
-  session = data.session;
-
-  if (!session) {
-    window.location.href = "login.html";
-    return;
-  }
-
-  // ⭐ AHORA SÍ puedes acceder a los datos del usuario
-  console.log("ID:", session.user.id);
-  console.log("Email:", session.user.email);
-  console.log("Firstname:", session.user.user_metadata.firstname);
-  console.log("Lastname:", session.user.user_metadata.lastname);
-  console.log("Academy:", session.user.user_metadata.academyId);
-  console.log("Plan:", session.user.user_metadata.plan);
-})();
-
 })();
 </script>
 
