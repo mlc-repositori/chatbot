@@ -8,7 +8,6 @@
   <meta name="theme-color" content="#F8D763">
 
   <!-- iPhone PWA -->
-  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -115,97 +114,67 @@ const supabaseClient = window.supabase.createClient(
 );
 
 let session = null;
-let profile = null;
 
-console.log("JS CARGADO");
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  session = data.session;
 
-// Desactivar botones hasta que haya perfil
-window.addEventListener("DOMContentLoaded", () => {
-  startBtn.disabled = true;
-  startSessionBtn.disabled = true;
-});
-
-// ⭐ CARGA DE SESIÓN + PERFIL USERS2
-supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
-  if (currentSession) {
-    session = currentSession;
-
-    console.log("Sesión lista:", session.user.id);
-
-    const { data: userProfile, error: profileError } = await supabaseClient
-      .from("users2")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Error cargando perfil users2:", profileError);
-      return;
-    }
-
-    profile = userProfile;
-    console.log("Perfil users2 cargado:", profile);
-
-    // ⭐ GENERAR SALUDO AHORA QUE EL PERFIL EXISTE
-    const firstname = profile.firstname || "student";
-
-    const today = getTodayDate();
-    const lastDate = localStorage.getItem("lastConnectionDate");
-
-    let greeting = "";
-
-    if (lastDate === today) {
-      loadLastMessage();
-      greeting = botText.textContent.trim();
-    } else {
-      const now = new Date();
-      const formattedDate = now.toLocaleDateString("en-US", {
-        weekday: "long", year: "numeric", month: "long", day: "numeric"
-      });
-
-      greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
-
-      botText.textContent = greeting;
-      saveHistory("", greeting);
-    }
-
-    localStorage.setItem("lastConnectionDate", today);
-
-    // Activar botones
-    startSessionBtn.disabled = false;
-    startBtn.disabled = false;
+  if (!session) {
+    window.location.href = "login.html";
   }
-});
+  (async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  session = data.session;
+
+  if (!session) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  // ⭐ AHORA SÍ puedes acceder a los datos del usuario
+  console.log("ID:", session.user.id);
+  console.log("Email:", session.user.email);
+  console.log("Firstname:", session.user.user_metadata.firstname);
+  console.log("Lastname:", session.user.user_metadata.lastname);
+  console.log("Academy:", session.user.user_metadata.academyId);
+  console.log("Plan:", session.user.user_metadata.plan);
+})();
+
+})();
 </script>
 
-<div class="chatbot-container">
-  <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
+  <div class="chatbot-container">
+    <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
 
-  <div>
-    <h3>Chatbot de voz en inglés</h3>
+    <div>
+      <h3>Chatbot de voz en inglés</h3>
 
-    <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
+      <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
-    <div class="voice-controls">
-      <button id="startBtn" disabled>🎤</button>
-      <button id="repeatBtn">🔁</button>
+      <div class="voice-controls">
+        <button id="startBtn" disabled>🎤</button>
+        <button id="repeatBtn">🔁</button>
+      </div>
+
+      <p><strong>Tú:</strong> <span id="userText"></span></p>
+      <p><strong>Bot:</strong> <span id="botText"></span></p>
+
+      <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
+
+      <p id="timeRow" style="display:none;">
+        <strong>Tiempo restante:</strong> <span id="timeSpent"></span>
+      </p>
     </div>
-
-    <p><strong>Tú:</strong> <span id="userText"></span></p>
-    <p><strong>Bot:</strong> <span id="botText"></span></p>
-
-    <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
-
-    <p id="timeRow" style="display:none;">
-      <strong>Tiempo restante:</strong> <span id="timeSpent"></span>
-    </p>
   </div>
-</div>
 
 <script>
 console.log("JS CARGADO");
 
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+window.addEventListener("DOMContentLoaded", () => {
+  startBtn.disabled = true;
+});
 
 function chooseBestVoice() {
   voiceName.textContent = "OpenAI TTS (único)";
@@ -247,6 +216,45 @@ function loadLastMessage() {
   }
 }
 
+/* ----------------------------------------------------------
+   ⭐ SALUDO INICIAL — RESTAURADO (FRONTEND)
+----------------------------------------------------------- */
+window.addEventListener("load", async () => {
+
+  chooseBestVoice();
+
+  // Obtener firstname real desde Supabase
+  const { data } = await supabaseClient.auth.getUser();
+  const firstname = data?.user?.user_metadata?.firstname || "student";
+
+  const today = getTodayDate();
+  const lastDate = localStorage.getItem("lastConnectionDate");
+
+  let greeting = "";
+
+  if (lastDate === today) {
+    // No es la primera vez del día → cargar último mensaje del bot
+    loadLastMessage();
+    greeting = "";
+  } else {
+    // Primera vez del día → generar saludo exacto
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric"
+    });
+
+    greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+
+    // Mostrar saludo en pantalla
+    botText.textContent = greeting;
+
+    // Guardarlo en historial del día
+    saveHistory("", greeting);
+  }
+
+  // Guardar fecha de última conexión
+  localStorage.setItem("lastConnectionDate", today);
+});
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -254,8 +262,10 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION — REPRODUCE EL SALUDO
+   START SESSION — DESBLOQUEO + REPRODUCCIÓN DEL SALUDO
 ----------------------------------------------------------- */
+const startSessionBtn = document.getElementById("startSessionBtn");
+
 startSessionBtn.onclick = async () => {
   if (!ttsContext) {
     ttsContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -279,6 +289,7 @@ startSessionBtn.onclick = async () => {
     console.warn("Error desbloqueando audio:", err);
   }
 
+  // ⭐ REPRODUCIR EL SALUDO O EL ÚLTIMO MENSAJE DEL BOT
   const greeting = botText.textContent.trim();
   if (greeting) {
     fetch("https://chatbot-xzhi.onrender.com/tts", {
@@ -345,12 +356,7 @@ startBtn.onclick = async () => {
       },
       body: JSON.stringify({
         message: transcript,
-        history: last3,
-        userId: profile.id,
-        firstname: profile.firstname,
-        lastname: profile.lastname,
-        planId: profile.plan_id,
-        dailyLimit: profile.daily_limit_seconds
+        history: last3
       })
     });
 
@@ -363,10 +369,12 @@ startBtn.onclick = async () => {
     lastBotText = response;
     lastBotAudio = data.audio;
 
-    const remaining = Math.max(profile.daily_limit_seconds - (data.timeSpentToday || 0), 0);
+    const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
 
+    // 🔊 Reproducir la respuesta del bot
+    
     playBackendTTS(response, data.audio);
   };
 
@@ -427,6 +435,7 @@ async function playBackendTTS(text, base64Audio) {
       return;
     }
   
+    // Reanudar ANTES de decodificar (por si acaso)
     if (ttsContext.state === "suspended") {
       try {
         await ttsContext.resume();
@@ -457,17 +466,17 @@ async function playBackendTTS(text, base64Audio) {
           "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          seconds: ttsDuration,
-          userId: profile.id
+          seconds: ttsDuration
         })
       })
       .then(r => r.json())
       .then(d => {
-        const remaining = Math.max(profile.daily_limit_seconds - d.total, 0);
+        const remaining = Math.max(300 - d.total, 0);
         timeSpent.textContent = formatTime(remaining);
       });
     };
 
+    // ⭐ FIX DEFINITIVO: reanudar JUSTO antes de reproducir
     if (ttsContext.state === "suspended") {
       try {
         await ttsContext.resume();
