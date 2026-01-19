@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#F8D763">
 
   <!-- iPhone PWA -->
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -118,7 +119,13 @@ let profile = null;
 
 console.log("JS CARGADO");
 
-// ⭐ CARGA DE SESIÓN + PERFIL USERS2 (100% fiable)
+// Desactivar botones hasta que haya perfil
+window.addEventListener("DOMContentLoaded", () => {
+  startBtn.disabled = true;
+  startSessionBtn.disabled = true;
+});
+
+// ⭐ CARGA DE SESIÓN + PERFIL USERS2
 supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
   if (currentSession) {
     session = currentSession;
@@ -137,8 +144,36 @@ supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
     }
 
     profile = userProfile;
-
     console.log("Perfil users2 cargado:", profile);
+
+    // ⭐ GENERAR SALUDO AHORA QUE EL PERFIL EXISTE
+    const firstname = profile.firstname || "student";
+
+    const today = getTodayDate();
+    const lastDate = localStorage.getItem("lastConnectionDate");
+
+    let greeting = "";
+
+    if (lastDate === today) {
+      loadLastMessage();
+      greeting = botText.textContent.trim();
+    } else {
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString("en-US", {
+        weekday: "long", year: "numeric", month: "long", day: "numeric"
+      });
+
+      greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+
+      botText.textContent = greeting;
+      saveHistory("", greeting);
+    }
+
+    localStorage.setItem("lastConnectionDate", today);
+
+    // Activar botones
+    startSessionBtn.disabled = false;
+    startBtn.disabled = false;
   }
 });
 </script>
@@ -171,10 +206,6 @@ supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
 console.log("JS CARGADO");
 
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-window.addEventListener("DOMContentLoaded", () => {
-  startBtn.disabled = true;
-});
 
 function chooseBestVoice() {
   voiceName.textContent = "OpenAI TTS (único)";
@@ -216,43 +247,6 @@ function loadLastMessage() {
   }
 }
 
-/* ----------------------------------------------------------
-   ⭐ SALUDO INICIAL — USANDO profile.firstname
------------------------------------------------------------ */
-window.addEventListener("load", async () => {
-
-  chooseBestVoice();
-
-  // Esperar a que profile esté cargado
-  while (!profile) {
-    await new Promise(r => setTimeout(r, 50));
-  }
-
-  const firstname = profile.firstname || "student";
-
-  const today = getTodayDate();
-  const lastDate = localStorage.getItem("lastConnectionDate");
-
-  let greeting = "";
-
-  if (lastDate === today) {
-    loadLastMessage();
-    greeting = "";
-  } else {
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString("en-US", {
-      weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
-
-    greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
-
-    botText.textContent = greeting;
-    saveHistory("", greeting);
-  }
-
-  localStorage.setItem("lastConnectionDate", today);
-});
-
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -260,10 +254,8 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION — DESBLOQUEO + REPRODUCCIÓN DEL SALUDO
+   START SESSION — REPRODUCE EL SALUDO
 ----------------------------------------------------------- */
-const startSessionBtn = document.getElementById("startSessionBtn");
-
 startSessionBtn.onclick = async () => {
   if (!ttsContext) {
     ttsContext = new (window.AudioContext || window.webkitAudioContext)();
