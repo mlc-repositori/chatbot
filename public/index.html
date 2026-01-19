@@ -151,6 +151,15 @@ let session = null;
 
 <script>
 console.log("JS CARGADO");
+console.log({
+  id: session.user.id,
+  email: session.user.email,
+  firstname: session.user.user_metadata.firstname,
+  lastname: session.user.user_metadata.lastname,
+  academyId: session.user.user_metadata.academyId,
+  plan: session.user.user_metadata.plan
+});
+
 
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
