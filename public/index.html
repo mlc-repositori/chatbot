@@ -345,22 +345,12 @@ startBtn.onclick = async () => {
 
     lastBotText = response;
     lastBotAudio = data.audio;
-    
-// ⭐ FIX: iOS/Android bloquean audio si no reanudamos el contexto
-if (ttsContext && ttsContext.state === "suspended") {
-  try {
-    await ttsContext.resume();
-  } catch (e) {
-    console.warn("No se pudo reanudar ttsContext:", e);
-  }
-}
 
-
-    
     const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
 
+    // 🔊 Reproducir la respuesta del bot
     playBackendTTS(response, data.audio);
   };
 
@@ -421,11 +411,12 @@ async function playBackendTTS(text, base64Audio) {
       return;
     }
 
+    // Reanudar ANTES de decodificar (por si acaso)
     if (ttsContext.state === "suspended") {
       try {
         await ttsContext.resume();
       } catch (e) {
-        console.log("Error reanudando ttsContext dentro de playBackendTTS:", e);
+        console.log("Error reanudando ttsContext (fase decode):", e);
       }
     }
 
@@ -460,6 +451,15 @@ async function playBackendTTS(text, base64Audio) {
         timeSpent.textContent = formatTime(remaining);
       });
     };
+
+    // ⭐ FIX DEFINITIVO: reanudar JUSTO antes de reproducir
+    if (ttsContext.state === "suspended") {
+      try {
+        await ttsContext.resume();
+      } catch (e) {
+        console.warn("No se pudo reanudar ttsContext justo antes de reproducir:", e);
+      }
+    }
 
     source.start(0);
 
