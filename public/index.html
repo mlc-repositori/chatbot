@@ -351,6 +351,8 @@ startBtn.onclick = async () => {
     timeRow.style.display = "block";
 
     // 🔊 Reproducir la respuesta del bot
+    console.log("Voy a reproducir:", response, data.audio);
+
     playBackendTTS(response, data.audio);
   };
 
@@ -410,6 +412,7 @@ async function playBackendTTS(text, base64Audio) {
       console.warn("ttsContext no inicializado; ¿se pulsó Start Session?");
       return;
     }
+   console.log("TTS recibido:", base64Audio?.substring(0,50));
 
     // Reanudar ANTES de decodificar (por si acaso)
     if (ttsContext.state === "suspended") {
