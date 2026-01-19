@@ -118,33 +118,29 @@ let profile = null;
 
 console.log("JS CARGADO");
 
-// ⭐ BLOQUE A + BLOQUE B — SESIÓN + PERFIL USERS2
-(async () => {
-  const { data: sessionData } = await supabaseClient.auth.getSession();
-  session = sessionData.session;
+// ⭐ CARGA DE SESIÓN + PERFIL USERS2 (100% fiable)
+supabaseClient.auth.onAuthStateChange(async (event, currentSession) => {
+  if (currentSession) {
+    session = currentSession;
 
-  if (!session) {
-    window.location.href = "login.html";
-    return;
+    console.log("Sesión lista:", session.user.id);
+
+    const { data: userProfile, error: profileError } = await supabaseClient
+      .from("users2")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+
+    if (profileError) {
+      console.error("Error cargando perfil users2:", profileError);
+      return;
+    }
+
+    profile = userProfile;
+
+    console.log("Perfil users2 cargado:", profile);
   }
-
-  console.log("Sesión cargada:", session.user.id);
-
-  const { data: userProfile, error: profileError } = await supabaseClient
-    .from("users2")
-    .select("*")
-    .eq("id", session.user.id)
-    .single();
-
-  if (profileError) {
-    console.error("Error cargando perfil users2:", profileError);
-    return;
-  }
-
-  profile = userProfile;
-
-  console.log("Perfil users2 cargado:", profile);
-})();
+});
 </script>
 
 <div class="chatbot-container">
