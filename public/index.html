@@ -237,6 +237,11 @@ window.addEventListener("load", async () => {
   // Guardar fecha de última conexión
   localStorage.setItem("lastConnectionDate", today);
 });
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
 
 /* ----------------------------------------------------------
    START SESSION — DESBLOQUEO + REPRODUCCIÓN DEL SALUDO
