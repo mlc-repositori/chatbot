@@ -33,9 +33,57 @@ function getToday() {
 // ------------------ MULTER ------------------
 const upload = multer({ dest: "uploads/" });
 
-// ============================================================
-// 🔊 RUTA STT — Whisper (OpenAI)
-// ============================================================
+/* ============================================================
+   👤 RUTA USERINFO — DATOS DEL USUARIO DESDE BACKEND
+============================================================ */
+app.post("/userinfo", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) {
+      return res.status(401).json({ error: "Missing token" });
+    }
+
+    // 1. Validar token con Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !authData?.user) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    const userId = authData.user.id;
+
+    // 2. Consultar tabla users2 con service_role
+    const { data: profile, error: dbError } = await supabase
+      .from("users2")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (dbError) {
+      console.error("❌ Error consultando users2:", dbError);
+      return res.status(400).json({ error: "User not found in users2" });
+    }
+
+    // 3. Devolver datos al frontend
+    return res.json({
+      id: profile.id,
+      email: profile.email,
+      firstname: profile.firstname,
+      lastname: profile.lastname,
+      plan_id: profile.plan_id,
+      daily_limit_seconds: profile.daily_limit_seconds,
+      academy_id: profile.academy_id
+    });
+
+  } catch (err) {
+    console.error("❌ Error en /userinfo:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/* ============================================================
+   🔊 RUTA STT — Whisper (OpenAI)
+============================================================ */
 app.post("/stt", upload.single("audio"), async (req, res) => {
   try {
     if (!req.file) return res.json({ text: "" });
@@ -68,9 +116,9 @@ app.post("/stt", upload.single("audio"), async (req, res) => {
   }
 });
 
-// ============================================================
-// 🔥 MOTOR PEDAGÓGICO (sin cambios)
-// ============================================================
+/* ============================================================
+   🔥 MOTOR PEDAGÓGICO
+============================================================ */
 
 function pickRandomTopic(previousTopic = null) {
   const topics = Object.keys(script.topics || {});
@@ -226,9 +274,9 @@ function advancePhase(ip) {
   console.log(`➡️ IP ${ip} avanza a fase: ${sessions[ip].phase}`);
 }
 
-// ============================================================
-// 🤖 RUTA CHAT — GPT‑4o‑mini + TTS
-// ============================================================
+/* ============================================================
+   🤖 RUTA CHAT — GPT‑4o‑mini + TTS
+============================================================ */
 app.post("/chat", async (req, res) => {
   console.log("📥 BODY CHAT:", req.body);
 
@@ -330,9 +378,9 @@ Current phase instructions: ${phasePrompt}
   });
 });
 
-// ============================================================
-// 🔊 RUTA TTS — PARA EL SALUDO INICIAL
-// ============================================================
+/* ============================================================
+   🔊 RUTA TTS — PARA EL SALUDO INICIAL
+============================================================ */
 app.post("/tts", async (req, res) => {
   const { text } = req.body;
 
@@ -361,9 +409,9 @@ app.post("/tts", async (req, res) => {
   }
 });
 
-// ============================================================
-// ⏱ RUTA PARA SUMAR TIEMPO
-// ============================================================
+/* ============================================================
+   ⏱ RUTA PARA SUMAR TIEMPO
+============================================================ */
 app.post("/ttsTime", async (req, res) => {
   console.log("📥 BODY TTS:", req.body);
 
@@ -421,7 +469,7 @@ app.post("/ttsTime", async (req, res) => {
   res.json({ ok: true, total: newTotal });
 });
 
-// ============================================================
-// 🚀 INICIAR SERVIDOR
-// ============================================================
+/* ============================================================
+   🚀 INICIAR SERVIDOR
+============================================================ */
 app.listen(3000, () => console.log("🚀 Servidor listo en puerto 3000"));
