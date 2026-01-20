@@ -84,6 +84,9 @@
       opacity: 0.4;
       cursor: not-allowed;
     }
+    #startBtn:hover:not(:disabled) {
+      transform: scale(1.05);
+    }
 
     #repeatBtn {
       background: none;
@@ -93,12 +96,16 @@
       padding: 6px;
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
+    #repeatBtn:hover {
+      transform: scale(1.15);
+      opacity: 0.8;
+    }
   </style>
 </head>
 
 <body>
 
-<!-- 🔐 SESIÓN -->
+<!-- 🔐 PROTECCIÓN DE SESIÓN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const supabaseClient = window.supabase.createClient(
@@ -107,57 +114,40 @@ const supabaseClient = window.supabase.createClient(
 );
 
 let session = null;
-let profile = null;
 
-// Sesión + carga de perfil users2
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   session = data.session;
 
   if (!session) {
     window.location.href = "login.html";
-    return;
-  }
-
-  // ⭐ Cargar perfil desde users2 (sin usarlo aún)
-  const { data: userProfile, error: profileError } = await supabaseClient
-    .from("users2")
-    .select("*")
-    .eq("id", session.user.id)
-    .single();
-
-  if (profileError) {
-    console.error("Error cargando perfil users2:", profileError);
-  } else {
-    profile = userProfile;
-    console.log("Perfil users2 cargado:", profile);
   }
 })();
 </script>
 
-<div class="chatbot-container">
-  <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
+  <div class="chatbot-container">
+    <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
 
-  <div>
-    <h3>Chatbot de voz en inglés</h3>
+    <div>
+      <h3>Chatbot de voz en inglés</h3>
 
-    <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
+      <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
-    <div class="voice-controls">
-      <button id="startBtn" disabled>🎤</button>
-      <button id="repeatBtn">🔁</button>
+      <div class="voice-controls">
+        <button id="startBtn" disabled>🎤</button>
+        <button id="repeatBtn">🔁</button>
+      </div>
+
+      <p><strong>Tú:</strong> <span id="userText"></span></p>
+      <p><strong>Bot:</strong> <span id="botText"></span></p>
+
+      <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
+
+      <p id="timeRow" style="display:none;">
+        <strong>Tiempo restante:</strong> <span id="timeSpent"></span>
+      </p>
     </div>
-
-    <p><strong>Tú:</strong> <span id="userText"></span></p>
-    <p><strong>Bot:</strong> <span id="botText"></span></p>
-
-    <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
-
-    <p id="timeRow" style="display:none;">
-      <strong>Tiempo restante:</strong> <span id="timeSpent"></span>
-    </p>
   </div>
-</div>
 
 <script>
 console.log("JS CARGADO");
@@ -215,6 +205,7 @@ window.addEventListener("load", async () => {
 
   chooseBestVoice();
 
+  // Obtener firstname real desde Supabase
   const { data } = await supabaseClient.auth.getUser();
   const firstname = data?.user?.user_metadata?.firstname || "student";
 
@@ -224,9 +215,11 @@ window.addEventListener("load", async () => {
   let greeting = "";
 
   if (lastDate === today) {
+    // No es la primera vez del día → cargar último mensaje del bot
     loadLastMessage();
     greeting = "";
   } else {
+    // Primera vez del día → generar saludo exacto
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", {
       weekday: "long", year: "numeric", month: "long", day: "numeric"
@@ -234,13 +227,16 @@ window.addEventListener("load", async () => {
 
     greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
 
+    // Mostrar saludo en pantalla
     botText.textContent = greeting;
+
+    // Guardarlo en historial del día
     saveHistory("", greeting);
   }
 
+  // Guardar fecha de última conexión
   localStorage.setItem("lastConnectionDate", today);
 });
-
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -275,6 +271,7 @@ startSessionBtn.onclick = async () => {
     console.warn("Error desbloqueando audio:", err);
   }
 
+  // ⭐ REPRODUCIR EL SALUDO O EL ÚLTIMO MENSAJE DEL BOT
   const greeting = botText.textContent.trim();
   if (greeting) {
     fetch("https://chatbot-xzhi.onrender.com/tts", {
@@ -358,6 +355,8 @@ startBtn.onclick = async () => {
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
 
+    // 🔊 Reproducir la respuesta del bot
+    
     playBackendTTS(response, data.audio);
   };
 
@@ -418,6 +417,7 @@ async function playBackendTTS(text, base64Audio) {
       return;
     }
   
+    // Reanudar ANTES de decodificar (por si acaso)
     if (ttsContext.state === "suspended") {
       try {
         await ttsContext.resume();
@@ -458,6 +458,7 @@ async function playBackendTTS(text, base64Audio) {
       });
     };
 
+    // ⭐ FIX DEFINITIVO: reanudar JUSTO antes de reproducir
     if (ttsContext.state === "suspended") {
       try {
         await ttsContext.resume();
