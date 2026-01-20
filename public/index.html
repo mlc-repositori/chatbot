@@ -84,9 +84,6 @@
       opacity: 0.4;
       cursor: not-allowed;
     }
-    #startBtn:hover:not(:disabled) {
-      transform: scale(1.05);
-    }
 
     #repeatBtn {
       background: none;
@@ -96,16 +93,12 @@
       padding: 6px;
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
-    #repeatBtn:hover {
-      transform: scale(1.15);
-      opacity: 0.8;
-    }
   </style>
 </head>
 
 <body>
 
-<!-- 🔐 PROTECCIÓN DE SESIÓN -->
+<!-- 🔐 SESIÓN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const supabaseClient = window.supabase.createClient(
@@ -114,40 +107,43 @@ const supabaseClient = window.supabase.createClient(
 );
 
 let session = null;
+let profile = null;
 
+// Obtener sesión
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   session = data.session;
 
   if (!session) {
     window.location.href = "login.html";
+    return;
   }
 })();
 </script>
 
-  <div class="chatbot-container">
-    <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
+<div class="chatbot-container">
+  <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
 
-    <div>
-      <h3>Chatbot de voz en inglés</h3>
+  <div>
+    <h3>Chatbot de voz en inglés</h3>
 
-      <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
+    <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
-      <div class="voice-controls">
-        <button id="startBtn" disabled>🎤</button>
-        <button id="repeatBtn">🔁</button>
-      </div>
-
-      <p><strong>Tú:</strong> <span id="userText"></span></p>
-      <p><strong>Bot:</strong> <span id="botText"></span></p>
-
-      <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
-
-      <p id="timeRow" style="display:none;">
-        <strong>Tiempo restante:</strong> <span id="timeSpent"></span>
-      </p>
+    <div class="voice-controls">
+      <button id="startBtn" disabled>🎤</button>
+      <button id="repeatBtn">🔁</button>
     </div>
+
+    <p><strong>Tú:</strong> <span id="userText"></span></p>
+    <p><strong>Bot:</strong> <span id="botText"></span></p>
+
+    <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
+
+    <p id="timeRow" style="display:none;">
+      <strong>Tiempo restante:</strong> <span id="timeSpent"></span>
+    </p>
   </div>
+</div>
 
 <script>
 console.log("JS CARGADO");
@@ -199,15 +195,43 @@ function loadLastMessage() {
 }
 
 /* ----------------------------------------------------------
-   ⭐ SALUDO INICIAL — RESTAURADO (FRONTEND)
+   ⭐ CARGAR DATOS DEL USUARIO DESDE BACKEND (/userinfo)
+----------------------------------------------------------- */
+async function loadUserInfo() {
+  try {
+    const res = await fetch("https://chatbot-xzhi.onrender.com/userinfo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        id: session.user.id,
+        email: session.user.email
+      })
+    });
+
+    const data = await res.json();
+    console.log("Perfil recibido desde backend:", data);
+
+    window.profile = data;
+    return data;
+
+  } catch (err) {
+    console.error("Error cargando userinfo:", err);
+    return null;
+  }
+}
+
+/* ----------------------------------------------------------
+   ⭐ SALUDO INICIAL — AHORA USANDO profile.firstname
 ----------------------------------------------------------- */
 window.addEventListener("load", async () => {
 
   chooseBestVoice();
 
-  // Obtener firstname real desde Supabase
-  const { data } = await supabaseClient.auth.getUser();
-  const firstname = data?.user?.user_metadata?.firstname || "student";
+  const profile = await loadUserInfo();
+  const firstname = profile?.firstname || "student";
 
   const today = getTodayDate();
   const lastDate = localStorage.getItem("lastConnectionDate");
@@ -215,11 +239,9 @@ window.addEventListener("load", async () => {
   let greeting = "";
 
   if (lastDate === today) {
-    // No es la primera vez del día → cargar último mensaje del bot
     loadLastMessage();
     greeting = "";
   } else {
-    // Primera vez del día → generar saludo exacto
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", {
       weekday: "long", year: "numeric", month: "long", day: "numeric"
@@ -227,16 +249,13 @@ window.addEventListener("load", async () => {
 
     greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
 
-    // Mostrar saludo en pantalla
     botText.textContent = greeting;
-
-    // Guardarlo en historial del día
     saveHistory("", greeting);
   }
 
-  // Guardar fecha de última conexión
   localStorage.setItem("lastConnectionDate", today);
 });
+
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -271,7 +290,6 @@ startSessionBtn.onclick = async () => {
     console.warn("Error desbloqueando audio:", err);
   }
 
-  // ⭐ REPRODUCIR EL SALUDO O EL ÚLTIMO MENSAJE DEL BOT
   const greeting = botText.textContent.trim();
   if (greeting) {
     fetch("https://chatbot-xzhi.onrender.com/tts", {
@@ -355,8 +373,6 @@ startBtn.onclick = async () => {
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
 
-    // 🔊 Reproducir la respuesta del bot
-    
     playBackendTTS(response, data.audio);
   };
 
@@ -417,7 +433,6 @@ async function playBackendTTS(text, base64Audio) {
       return;
     }
   
-    // Reanudar ANTES de decodificar (por si acaso)
     if (ttsContext.state === "suspended") {
       try {
         await ttsContext.resume();
@@ -458,7 +473,6 @@ async function playBackendTTS(text, base64Audio) {
       });
     };
 
-    // ⭐ FIX DEFINITIVO: reanudar JUSTO antes de reproducir
     if (ttsContext.state === "suspended") {
       try {
         await ttsContext.resume();
