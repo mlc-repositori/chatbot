@@ -107,7 +107,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 let session = null;
-let profile = null;
+window.profile = null;   <!-- FIX 1 -->
 
 // Obtener sesión
 (async () => {
@@ -214,7 +214,7 @@ async function loadUserInfo() {
     const data = await res.json();
     console.log("Perfil recibido desde backend:", data);
 
-    window.profile = data;
+    window.profile = data;   <!-- FIX 2 -->
     return data;
 
   } catch (err) {
@@ -224,14 +224,14 @@ async function loadUserInfo() {
 }
 
 /* ----------------------------------------------------------
-   ⭐ SALUDO INICIAL — AHORA USANDO profile.firstname
+   ⭐ SALUDO INICIAL — AHORA USANDO window.profile
 ----------------------------------------------------------- */
 window.addEventListener("load", async () => {
 
   chooseBestVoice();
 
-  const profile = await loadUserInfo();
-  const firstname = profile?.firstname || "student";
+  await loadUserInfo();   <!-- FIX 3 -->
+  const firstname = window.profile?.firstname || "student";
 
   const today = getTodayDate();
   const lastDate = localStorage.getItem("lastConnectionDate");
@@ -349,21 +349,20 @@ startBtn.onclick = async () => {
     const last3 = fullHistory.slice(-3);
 
     const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
-  method: "POST",
-  headers: { 
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${session.access_token}`
-  },
-  body: JSON.stringify({
-    message: transcript,
-    history: last3,
-    userId: profile.id,
-    firstname: profile.firstname,
-    lastname: profile.lastname,
-    email: profile.email
-  })
-});
-
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        message: transcript,
+        history: last3,
+        userId: window.profile.id,        <!-- FIX 4 -->
+        firstname: window.profile.firstname,
+        lastname: window.profile.lastname,
+        email: window.profile.email
+      })
+    });
 
     const data = await chatRes.json();
     const response = data.reply || "Error";
@@ -468,10 +467,9 @@ async function playBackendTTS(text, base64Audio) {
           "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-         seconds: ttsDuration,
-         userId: profile.id
+          seconds: ttsDuration,
+          userId: window.profile.id   <!-- FIX 5 -->
         })
-
       })
       .then(r => r.json())
       .then(d => {
