@@ -43,7 +43,6 @@ app.post("/userinfo", async (req, res) => {
       return res.status(401).json({ error: "Missing token" });
     }
 
-    // 1. Validar token con Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !authData?.user) {
@@ -52,7 +51,6 @@ app.post("/userinfo", async (req, res) => {
 
     const userId = authData.user.id;
 
-    // 2. Consultar tabla users2 con service_role
     const { data: profile, error: dbError } = await supabase
       .from("users2")
       .select("*")
@@ -64,7 +62,6 @@ app.post("/userinfo", async (req, res) => {
       return res.status(400).json({ error: "User not found in users2" });
     }
 
-    // 3. Devolver datos al frontend
     return res.json({
       id: profile.id,
       email: profile.email,
@@ -297,9 +294,9 @@ app.post("/chat", async (req, res) => {
 
   if (effectiveUserId) {
     const { data } = await supabase
-      .from("usage")
+      .from("usage2")
       .select("seconds")
-      .eq("userId", effectiveUserId)
+      .eq("user_id", effectiveUserId)
       .eq("date", today)
       .maybeSingle();
 
@@ -430,9 +427,9 @@ app.post("/ttsTime", async (req, res) => {
 
   if (effectiveUserId) {
     const { data } = await supabase
-      .from("usage")
+      .from("usage2")
       .select("seconds")
-      .eq("userId", effectiveUserId)
+      .eq("user_id", effectiveUserId)
       .eq("date", today)
       .maybeSingle();
 
@@ -440,9 +437,8 @@ app.post("/ttsTime", async (req, res) => {
 
     const newTotal = previous + seconds;
 
-    await supabase.from("usage").upsert({
-      userId: effectiveUserId,
-      ip,
+    await supabase.from("usage2").upsert({
+      user_id: effectiveUserId,
       date: today,
       seconds: newTotal
     });
@@ -451,17 +447,17 @@ app.post("/ttsTime", async (req, res) => {
   }
 
   const { data } = await supabase
-    .from("usage")
+    .from("usage2")
     .select("seconds")
-    .eq("ip", ip)
+    .eq("user_id", null)
     .eq("date", today)
     .maybeSingle();
 
   previous = data?.seconds || 0;
   const newTotal = previous + seconds;
 
-  await supabase.from("usage").upsert({
-    ip,
+  await supabase.from("usage2").upsert({
+    user_id: null,
     date: today,
     seconds: newTotal
   });
