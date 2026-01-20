@@ -349,16 +349,21 @@ startBtn.onclick = async () => {
     const last3 = fullHistory.slice(-3);
 
     const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        message: transcript,
-        history: last3
-      })
-    });
+  method: "POST",
+  headers: { 
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`
+  },
+  body: JSON.stringify({
+    message: transcript,
+    history: last3,
+    userId: profile.id,
+    firstname: profile.firstname,
+    lastname: profile.lastname,
+    email: profile.email
+  })
+});
+
 
     const data = await chatRes.json();
     const response = data.reply || "Error";
@@ -463,8 +468,10 @@ async function playBackendTTS(text, base64Audio) {
           "Authorization": `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          seconds: ttsDuration
+         seconds: ttsDuration,
+         userId: profile.id
         })
+
       })
       .then(r => r.json())
       .then(d => {
