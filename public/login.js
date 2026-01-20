@@ -1,12 +1,12 @@
 // Inicializa Supabase
 const supabaseClient = window.supabase.createClient(
   "https://axggbupenrrsqjhjhnbg.supabase.co",
-  "sb-publishable-JAgRBxG15HHGxFdNXwsr4w_kSKBaIx1"
+  "sb_publishable_JAgRBxG15HHGxFdNXwsr4w_kSKBaIx1"
 );
 
 // Si ya hay sesión → ir al chatbot
 (async () => {
-  const { data: { session } } = await supabaseClient.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     window.location.href = "index.html";
   }
