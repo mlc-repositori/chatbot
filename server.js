@@ -287,7 +287,8 @@ app.post("/chat", async (req, res) => {
 
   if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
 
-  const effectiveUserId = sessions[ip].userId || userId || null;
+  const effectiveUserId = userId || null;
+
 
   const today = getToday();
   let used = 0;
@@ -421,7 +422,7 @@ app.post("/ttsTime", async (req, res) => {
 
   if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
 
-  const effectiveUserId = sessions[ip].userId || userId || null;
+  const effectiveUserId = userId || null;
 
   let previous = 0;
 
