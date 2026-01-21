@@ -232,6 +232,7 @@ window.addEventListener("load", async () => {
 
   await loadUserInfo();   <!-- FIX 3 -->
   const firstname = window.profile?.firstname || "student";
+  console.log("PROFILE:", window.profile);
 
   const today = getTodayDate();
   const lastDate = localStorage.getItem("lastConnectionDate");
