@@ -357,7 +357,7 @@ startBtn.onclick = async () => {
       body: JSON.stringify({
         message: transcript,
         history: last3,
-        userId: window.profile.id,        <!-- FIX 4 -->
+        userId: window.profile?.id || session.user.id       <!-- FIX 4 -->
         firstname: window.profile.firstname,
         lastname: window.profile.lastname,
         email: window.profile.email
