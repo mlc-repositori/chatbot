@@ -473,4 +473,5 @@ const effectiveUserId = userId;
 /* ============================================================
    🚀 INICIAR SERVIDOR
 ============================================================ */
+console.log("🟢 BACKEND ACTUAL CARGADO — VERSION TTS FIX");
 app.listen(3000, () => console.log("🚀 Servidor listo en puerto 3000"));
