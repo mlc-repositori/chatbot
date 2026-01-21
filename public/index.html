@@ -470,7 +470,7 @@ async function playBackendTTS(text, base64Audio) {
         },
         body: JSON.stringify({
           seconds: ttsDuration,
-          userId: window.profile.id   <!-- FIX 5 -->
+          userId: window.profile?.id || session.user.id
         })
       })
       .then(r => r.json())
