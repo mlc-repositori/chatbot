@@ -283,12 +283,12 @@ app.post("/chat", async (req, res) => {
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
 
-  if (!sessions[ip]) initSession(ip);
+  if (!userId) {
+  console.log("❌ No llegó userId, no sumo tiempo");
+  return res.json({ ok: false, error: "Missing userId" });
+}
 
-  if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
-
-  const effectiveUserId = userId || null;
-
+const effectiveUserId = userId;
 
   const today = getToday();
   let used = 0;
@@ -418,11 +418,13 @@ app.post("/ttsTime", async (req, res) => {
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
   const today = getToday();
 
-  if (!sessions[ip]) initSession(ip);
+  if (!userId) {
+  console.log("❌ No llegó userId, no sumo tiempo");
+  return res.json({ ok: false, error: "Missing userId" });
+}
 
-  if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
+const effectiveUserId = userId;
 
-  const effectiveUserId = userId || null;
 
   let previous = 0;
 
