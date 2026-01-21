@@ -437,24 +437,29 @@ app.post("/ttsTime", async (req, res) => {
   const newTotal = previous + seconds;
 
   // 2) Guardar
-  const { error } = await supabase.from("usage2").upsert({
-    user_id: effectiveUserId,
-    date: today,
-    seconds: newTotal
-  });
+const { error } = await supabase
+  .from("usage2")
+  .upsert(
+    {
+      user_id: effectiveUserId,
+      date: today,
+      seconds: newTotal
+    },
+    { onConflict: "user_id,date" }
+  );
 
-  if (error) {
-    console.log("❌ Error al guardar en usage2:", error);
-    return res.json({ ok: false, error: error.message });
-  }
+if (error) {
+  console.log("❌ Error al guardar en usage2:", error);
+  return res.json({ ok: false, error: error.message });
+}
 
-  console.log("📝 Guardado en usage2:", {
-    user_id: effectiveUserId,
-    date: today,
-    seconds: newTotal
-  });
+console.log("📝 Guardado en usage2:", {
+  user_id: effectiveUserId,
+  date: today,
+  seconds: newTotal
+});
 
-  return res.json({ ok: true, total: newTotal });
+return res.json({ ok: true, total: newTotal });
 });
 
 /* ============================================================
