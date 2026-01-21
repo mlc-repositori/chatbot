@@ -283,12 +283,12 @@ app.post("/chat", async (req, res) => {
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
 
-  if (!userId) {
-  console.log("❌ No llegó userId, no sumo tiempo");
-  return res.json({ ok: false, error: "Missing userId" });
-}
+  if (!sessions[ip]) initSession(ip);
 
-const effectiveUserId = userId;
+  if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
+
+  const effectiveUserId = userId || null;
+
 
   const today = getToday();
   let used = 0;
