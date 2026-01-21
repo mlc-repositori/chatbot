@@ -416,58 +416,45 @@ app.post("/ttsTime", async (req, res) => {
   console.log("📥 BODY TTS:", req.body);
 
   const { seconds, userId } = req.body;
-
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
   const today = getToday();
 
   if (!userId) {
-  console.log("❌ No llegó userId, no sumo tiempo");
-  return res.json({ ok: false, error: "Missing userId" });
-}
-
-const effectiveUserId = userId;
-
-
-  let previous = 0;
-
-  if (effectiveUserId) {
-    const { data } = await supabase
-      .from("usage2")
-      .select("seconds")
-      .eq("user_id", effectiveUserId)
-      .eq("date", today)
-      .maybeSingle();
-
-    previous = data?.seconds || 0;
-
-    const newTotal = previous + seconds;
-
-    await supabase.from("usage2").upsert({
-      user_id: effectiveUserId,
-      date: today,
-      seconds: newTotal
-    });
-
-    return res.json({ ok: true, total: newTotal });
+    console.log("❌ No llegó userId, no sumo tiempo");
+    return res.json({ ok: false, error: "Missing userId" });
   }
 
-  const { data } = await supabase
+  const effectiveUserId = userId;
+
+  // 1) Leer registro existente
+  const { data: existing } = await supabase
     .from("usage2")
     .select("seconds")
-    .eq("user_id", null)
+    .eq("user_id", effectiveUserId)
     .eq("date", today)
     .maybeSingle();
 
-  previous = data?.seconds || 0;
+  const previous = existing?.seconds || 0;
   const newTotal = previous + seconds;
 
-  await supabase.from("usage2").upsert({
-    user_id: null,
+  // 2) Guardar
+  const { error } = await supabase.from("usage2").upsert({
+    user_id: effectiveUserId,
     date: today,
     seconds: newTotal
   });
 
-  res.json({ ok: true, total: newTotal });
+  if (error) {
+    console.log("❌ Error al guardar en usage2:", error);
+    return res.json({ ok: false, error: error.message });
+  }
+
+  console.log("📝 Guardado en usage2:", {
+    user_id: effectiveUserId,
+    date: today,
+    seconds: newTotal
+  });
+
+  return res.json({ ok: true, total: newTotal });
 });
 
 /* ============================================================
