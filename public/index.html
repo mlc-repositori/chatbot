@@ -223,17 +223,6 @@ async function loadUserInfo() {
   }
 }
 
-async function loadSession() {
-  const { data } = await supabaseClient.auth.getSession();
-  session = data.session;
-
-  if (!session) {
-    window.location.href = "login.html";
-    return false;
-  }
-  return true;
-}
-
   
 /* ----------------------------------------------------------
    ⭐ SALUDO INICIAL — AHORA USANDO window.profile
@@ -241,7 +230,7 @@ async function loadSession() {
 window.addEventListener("load", async () => {
 
   chooseBestVoice();
-   await loadSession();
+  
   await loadUserInfo();   <!-- FIX 3 -->
    console.log("PROFILE AFTER LOAD:", window.profile);                     
   const firstname = window.profile?.firstname || "student";
