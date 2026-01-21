@@ -460,6 +460,7 @@ async function playBackendTTS(text, base64Audio) {
       console.log("🔚 TTS terminó");
       const ttsDuration = (Date.now() - ttsStart) / 1000;
       avatar.src = "avatarprofemujer2.jpg";
+       console.log("🚀 Voy a enviar /ttsTime. profile =", window.profile);
 
       fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
         method: "POST",
@@ -474,6 +475,7 @@ async function playBackendTTS(text, base64Audio) {
       })
       .then(r => r.json())
       .then(d => {
+        console.log("📬 Respuesta /ttsTime:", d);
         const remaining = Math.max(300 - d.total, 0);
         timeSpent.textContent = formatTime(remaining);
       });
