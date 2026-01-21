@@ -231,6 +231,7 @@ window.addEventListener("load", async () => {
   chooseBestVoice();
 
   await loadUserInfo();   <!-- FIX 3 -->
+   console.log("PROFILE AFTER LOAD:", window.profile);                     
   const firstname = window.profile?.firstname || "student";
 
   const today = getTodayDate();
