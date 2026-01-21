@@ -223,6 +223,18 @@ async function loadUserInfo() {
   }
 }
 
+async function loadSession() {
+  const { data } = await supabaseClient.auth.getSession();
+  session = data.session;
+
+  if (!session) {
+    window.location.href = "login.html";
+    return false;
+  }
+  return true;
+}
+
+  
 /* ----------------------------------------------------------
    ⭐ SALUDO INICIAL — AHORA USANDO window.profile
 ----------------------------------------------------------- */
