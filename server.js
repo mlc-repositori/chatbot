@@ -410,6 +410,8 @@ app.post("/tts", async (req, res) => {
 /* ============================================================
    ⏱ RUTA PARA SUMAR TIEMPO
 ============================================================ */
+console.log("🟢 Registrando ruta /ttsTime DESDE ESTA VERSION");
+
 app.post("/ttsTime", async (req, res) => {
   console.log("📥 BODY TTS:", req.body);
 
