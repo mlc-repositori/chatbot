@@ -100,9 +100,28 @@
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+    // LOGIN
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        const msg = document.getElementById("errorMsg");
+        msg.textContent = "Email o contraseña incorrectos.";
+        msg.style.display = "block";
+      } else {
+        window.location.href = "chat.html";
+      }
+    });
+
+    // RESET PASSWORD
     document.getElementById("forgot").addEventListener("click", async () => {
       const email = prompt("Introduce tu email para recuperar la contraseña:");
-
       if (!email) return;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -116,8 +135,6 @@
       }
     });
   </script>
-
-  <script src="login.js"></script>
 
 </body>
 </html>
