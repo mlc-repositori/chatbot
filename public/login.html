@@ -60,6 +60,17 @@
       text-align: center;
       display: none;
     }
+
+    .forgot {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .forgot a {
+      color: #007bff;
+      text-decoration: underline;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -74,9 +85,38 @@
     <button id="loginBtn">Entrar</button>
 
     <p id="errorMsg"></p>
+
+    <div class="forgot">
+      <a id="forgot">¿Olvidaste tu contraseña?</a>
+    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const supabaseUrl = "https://axggbupenrrsqjhjhnbg.supabase.co";
+    const supabaseAnonKey =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4Z2didXBlbnJyc3FqaGpobmJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3NjQwMDIsImV4cCI6MjA4MjM0MDAwMn0.M7q025ebZiiN7Jcd-5TBKdU60VFVBmkU3Ge6peAuJP4";
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    document.getElementById("forgot").addEventListener("click", async () => {
+      const email = prompt("Introduce tu email para recuperar la contraseña:");
+
+      if (!email) return;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "https://chatbot-xzhi.onrender.com/reset-password.html"
+      });
+
+      if (error) {
+        alert("Error: " + error.message);
+      } else {
+        alert("Te hemos enviado un email con instrucciones para restablecer tu contraseña.");
+      }
+    });
+  </script>
+
   <script src="login.js"></script>
 
 </body>
