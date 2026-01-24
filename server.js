@@ -361,7 +361,6 @@ Current phase instructions: ${phasePrompt}
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      /* model: "gpt-4o-mini-tts", */
       model: "gpt-4o-tts",
       voice: "shimmer",
       input: reply,
