@@ -337,7 +337,9 @@ Current phase instructions: ${phasePrompt}
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      /* model: "gpt-4o-mini", */
+      model: "gpt-4.1-mini",
+
       max_tokens: 120,
       messages: [
         { role: "system", content: systemPrompt },
