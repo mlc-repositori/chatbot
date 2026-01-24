@@ -316,10 +316,13 @@ app.post("/chat", async (req, res) => {
 
   const systemPrompt = `
 You are an English tutor.
-Correct only important mistakes.
+Do NOT correct grammar unless the mistake makes the sentence hard to understand.
+Ignore small errors.
+Focus on conversation, not correction.
 Keep answers short (max 3 sentences).
 Always end with a question.
 Current phase instructions: ${phasePrompt}
+
 `;
 
   let historyMessages = [];
