@@ -289,7 +289,6 @@ app.post("/chat", async (req, res) => {
 
   const effectiveUserId = userId || null;
 
-
   const today = getToday();
   let used = 0;
 
@@ -304,13 +303,40 @@ app.post("/chat", async (req, res) => {
     used = data?.seconds || 0;
   }
 
+  /* ============================================================
+     ⛔ LÍMITE DE TIEMPO — AHORA CON TTS
+  ============================================================ */
   if (used >= SESSION_LIMIT) {
+    const limitMessage = "I'm sorry, but you reached your 5‑minute limit for today, but don't be sad, we can meet again tomorrow.";
+
+    // Generar TTS también para este mensaje
+    const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini-tts",
+        voice: "shimmer",
+        input: limitMessage,
+        format: "wav"
+      })
+    });
+
+    const arrayBuffer = await ttsRes.arrayBuffer();
+    const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+
     return res.json({
-      reply: "I'm sorry, but you reached your 5‑minute limit for today.",
-      audio: null,
+      reply: limitMessage,
+      audio: audioBase64,
       timeSpentToday: used
     });
   }
+
+  /* ============================================================
+     🧠 CHAT NORMAL
+  ============================================================ */
 
   const phasePrompt = getPromptForPhase(ip, message);
 
@@ -322,7 +348,6 @@ Focus on conversation, not correction.
 Keep answers short (max 3 sentences).
 Always end with a question.
 Current phase instructions: ${phasePrompt}
-
 `;
 
   let historyMessages = [];
@@ -340,9 +365,7 @@ Current phase instructions: ${phasePrompt}
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      /* model: "gpt-4o-mini", */
       model: "gpt-4.1-mini",
-
       max_tokens: 120,
       messages: [
         { role: "system", content: systemPrompt },
@@ -380,7 +403,6 @@ Current phase instructions: ${phasePrompt}
     timeSpentToday: used
   });
 });
-
 /* ============================================================
    🔊 RUTA TTS — PARA EL SALUDO INICIAL
 ============================================================ */
