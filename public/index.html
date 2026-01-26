@@ -93,6 +93,22 @@
       padding: 6px;
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
+
+    /* ⭐ Business English submenu */
+    #businessMenu button.submenu-btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      font-size: clamp(16px, 3vw, 20px);
+      background-color: #222;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #businessMenu button.submenu-btn:hover {
+      opacity: 0.8;
+    }
   </style>
 </head>
 
@@ -107,7 +123,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 let session = null;
-window.profile = null;   <!-- FIX 1 -->
+window.profile = null;
 
 // Obtener sesión
 (async () => {
@@ -128,6 +144,24 @@ window.profile = null;   <!-- FIX 1 -->
     <h3>Chatbot de voz en inglés</h3>
 
     <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
+
+    <!-- ⭐ BOTÓN BUSINESS ENGLISH -->
+    <button id="businessBtn" class="start-session-btn" style="background-color:#333;">
+      💼 Business English
+    </button>
+
+    <!-- ⭐ SUBMENÚ BUSINESS ENGLISH -->
+    <div id="businessMenu" style="display:none; margin-top:10px;">
+      <button class="submenu-btn" data-mode="negotiation">🤝 Negotiation</button>
+      <button class="submenu-btn" data-mode="job_interview">🧑‍💼 Job Interview</button>
+      <button class="submenu-btn" data-mode="client_meeting">📊 Client Meeting</button>
+      <button class="submenu-btn" data-mode="presentation">🎤 Presentation</button>
+      <button class="submenu-btn" data-mode="conflict_resolution">⚠️ Conflict Resolution</button>
+      <button class="submenu-btn" data-mode="sales_call">📞 Sales Call</button>
+      <button class="submenu-btn" data-mode="exit" style="background-color:#b30000;">
+        ❌ Exit Business Mode
+      </button>
+    </div>
 
     <div class="voice-controls">
       <button id="startBtn" disabled>🎤</button>
@@ -212,9 +246,7 @@ async function loadUserInfo() {
     });
 
     const data = await res.json();
-    console.log("Perfil recibido desde backend:", data);
-
-    window.profile = data;   <!-- FIX 2 -->
+    window.profile = data;
     return data;
 
   } catch (err) {
@@ -225,14 +257,13 @@ async function loadUserInfo() {
 
   
 /* ----------------------------------------------------------
-   ⭐ SALUDO INICIAL — AHORA USANDO window.profile
+   ⭐ SALUDO INICIAL
 ----------------------------------------------------------- */
 window.addEventListener("load", async () => {
 
   chooseBestVoice();
   
-  await loadUserInfo();   <!-- FIX 3 -->
-   console.log("PROFILE AFTER LOAD:", window.profile);                     
+  await loadUserInfo();
   const firstname = window.profile?.firstname || "student";
 
   const today = getTodayDate();
@@ -265,7 +296,7 @@ function formatTime(seconds) {
 }
 
 /* ----------------------------------------------------------
-   START SESSION — DESBLOQUEO + REPRODUCCIÓN DEL SALUDO
+   START SESSION
 ----------------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
@@ -459,10 +490,8 @@ async function playBackendTTS(text, base64Audio) {
     const ttsStart = Date.now();
 
     source.onended = () => {
-      console.log("🔚 TTS terminó");
       const ttsDuration = (Date.now() - ttsStart) / 1000;
       avatar.src = "avatarprofemujer2.jpg";
-       console.log("🚀 Voy a enviar /ttsTime. profile =", window.profile);
 
       fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
         method: "POST",
@@ -477,7 +506,6 @@ async function playBackendTTS(text, base64Audio) {
       })
       .then(r => r.json())
       .then(d => {
-        console.log("📬 Respuesta /ttsTime:", d);
         const remaining = Math.max(300 - d.total, 0);
         timeSpent.textContent = formatTime(remaining);
       });
@@ -506,6 +534,41 @@ document.getElementById("repeatBtn").onclick = () => {
     playBackendTTS(lastBotText, lastBotAudio);
   }
 };
+
+/* ----------------------------------------------------------
+   ⭐ BUSINESS ENGLISH MENU
+----------------------------------------------------------- */
+const businessBtn = document.getElementById("businessBtn");
+const businessMenu = document.getElementById("businessMenu");
+
+businessBtn.addEventListener("click", () => {
+  businessMenu.style.display =
+    businessMenu.style.display === "none" ? "block" : "none";
+});
+
+document.querySelectorAll(".submenu-btn").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const mode = btn.dataset.mode;
+
+    await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ mode })
+    });
+
+    if (mode === "exit") {
+      botText.textContent = "Business English mode deactivated.";
+    } else {
+      botText.textContent =
+        "Business English mode activated: " + mode.replace("_", " ");
+    }
+
+    businessMenu.style.display = "none";
+  });
+});
 </script>
 
 <script>
