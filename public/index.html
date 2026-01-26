@@ -123,10 +123,30 @@
     #businessMenu button.submenu-btn:hover {
       opacity: 0.85;
     }
+   #toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  z-index: 9999;
+}
+#toast.show {
+  opacity: 1;
+}
+ 
   </style>
 </head>
 
 <body>
+<div id="toast"></div>
 
 <!-- 🔐 SESIÓN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -571,15 +591,26 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
       body: JSON.stringify({ mode })
     });
 
-   if (mode !== "exit") {
-  botText.textContent =
-    "Business English mode activated: " + mode.replace("_", " ");
-}
-
+    if (mode !== "exit") {
+      showToast("Business English: " + mode.replace("_", " ") + " activated");
+    } else {
+      showToast("Business English deactivated");
+    }
 
     businessMenu.style.display = "none";
   });
 });
+
+  function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2500);
+}
+
 </script>
 
 <script>
