@@ -571,12 +571,11 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
       body: JSON.stringify({ mode })
     });
 
-    if (mode === "exit") {
-      botText.textContent = "Business English mode deactivated.";
-    } else {
-      botText.textContent =
-        "Business English mode activated: " + mode.replace("_", " ");
-    }
+   if (mode !== "exit") {
+  botText.textContent =
+    "Business English mode activated: " + mode.replace("_", " ");
+}
+
 
     businessMenu.style.display = "none";
   });
