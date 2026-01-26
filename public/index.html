@@ -592,10 +592,13 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
     });
 
     if (mode !== "exit") {
-      showToast("Business English: " + mode.replace("_", " ") + " activated");
-    } else {
-      showToast("Business English deactivated");
-    }
+  setTimeout(() => {
+    showToast("Business English: " + mode.replace("_", " ") + " activated");
+  }, 150);
+} else {
+  showToast("Business English deactivated");
+}
+
 
     businessMenu.style.display = "none";
   });
