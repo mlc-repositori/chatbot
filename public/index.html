@@ -604,12 +604,20 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
   function showToast(message) {
   const toast = document.getElementById("toast");
   toast.textContent = message;
+
+  // Reiniciar estado para permitir animación repetida
+  toast.classList.remove("show");
+
+  // Forzar repintado antes de añadir la clase
+  void toast.offsetWidth;
+
   toast.classList.add("show");
 
   setTimeout(() => {
     toast.classList.remove("show");
   }, 2500);
 }
+
 
 </script>
 
