@@ -239,6 +239,36 @@ function loadLastMessage() {
     botText.textContent = h[h.length - 1].bot;
   }
 }
+
+/* ----------------------------------------------------------
+   ⭐ CARGAR DATOS DEL USUARIO DESDE BACKEND (/userinfo)
+----------------------------------------------------------- */
+async function loadUserInfo() {
+  try {
+    const res = await fetch("https://chatbot-xzhi.onrender.com/userinfo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        id: session.user.id,
+        email: session.user.email
+      })
+    });
+
+    const data = await res.json();
+    console.log("Perfil recibido desde backend:", data);
+
+    window.profile = data;
+    return data;
+
+  } catch (err) {
+    console.error("Error cargando userinfo:", err);
+    return null;
+  }
+}
+
 /* ----------------------------------------------------------
    ⭐ SALUDO INICIAL
 ----------------------------------------------------------- */
