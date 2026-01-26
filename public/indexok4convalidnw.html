@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#F8D763">
+
+  <!-- iPhone PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+
+  <title>Chatbot con Avatar Animado</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #F8D763;
+      font-size: clamp(16px, 2.8vw, 20px);
+      margin: 0;
+      padding: 20px;
+    }
+    .chatbot-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+    .chatbot-container img {
+      display: block;
+      width: 100%;
+      max-width: 250px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .chatbot-container h3 {
+      font-size: clamp(18px, 3.4vw, 24px);
+      margin: 0 0 10px 0;
+    }
+    .chatbot-container p {
+      font-size: clamp(16px, 2.8vw, 20px);
+      margin: 4px 0;
+    }
+
+    .start-session-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: clamp(18px, 3.4vw, 22px);
+      background-color: #000;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      transition: opacity 0.3s ease, transform 0.2s ease;
+    }
+
+    .voice-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 15px;
+    }
+
+    #startBtn {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    #startBtn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #repeatBtn {
+      background: none;
+      border: none;
+      font-size: 30px;
+      cursor: pointer;
+      padding: 6px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- 🔐 SESIÓN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const supabaseClient = window.supabase.createClient(
+  "https://axggbupenrrsqjhjhnbg.supabase.co",
+  "sb-publishable-JAgRBxG15HHGxFdNXwsr4w_kSKBaIx1"
+);
+
+let session = null;
+window.profile = null;   <!-- FIX 1 -->
+
+// Obtener sesión
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  session = data.session;
+
+  if (!session) {
+    window.location.href = "login.html";
+    return;
+  }
+})();
+</script>
+
+<div class="chatbot-container">
+  <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
+
+  <div>
+    <h3>Chatbot de voz en inglés</h3>
+
+    <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
+
+    <div class="voice-controls">
+      <button id="startBtn" disabled>🎤</button>
+      <button id="repeatBtn">🔁</button>
+    </div>
+
+    <p><strong>Tú:</strong> <span id="userText"></span></p>
+    <p><strong>Bot:</strong> <span id="botText"></span></p>
+
+    <p><strong>Voz seleccionada:</strong> <span id="voiceName">(cargando voces...)</span></p>
+
+    <p id="timeRow" style="display:none;">
+      <strong>Tiempo restante:</strong> <span id="timeSpent"></span>
+    </p>
+  </div>
+</div>
+
+<script>
+console.log("JS CARGADO");
+
+const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+window.addEventListener("DOMContentLoaded", () => {
+  startBtn.disabled = true;
+});
+
+function chooseBestVoice() {
+  voiceName.textContent = "OpenAI TTS (único)";
+}
+
+let mediaRecorder = null;
+let audioChunks = [];
+let mediaStream = null;
+let audioContext = null;
+let ttsContext = null;
+
+let lastBotAudio = null;
+let lastBotText = "";
+
+const userText = document.getElementById("userText");
+const botText = document.getElementById("botText");
+const timeSpent = document.getElementById("timeSpent");
+const timeRow = document.getElementById("timeRow");
+const avatar = document.getElementById("avatar");
+
+function getTodayDate() {
+  return new Date().toISOString().split("T")[0];
+}
+function getHistoryKey() {
+  return "chatHistory_" + getTodayDate();
+}
+function saveHistory(userMsg, botMsg) {
+  const key = getHistoryKey();
+  let h = JSON.parse(localStorage.getItem(key) || "[]");
+  h.push({ user: userMsg, bot: botMsg });
+  if (h.length > 5) h = h.slice(-5);
+  localStorage.setItem(key, JSON.stringify(h));
+}
+function loadLastMessage() {
+  const h = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
+  if (h.length > 0) {
+    userText.textContent = h[h.length - 1].user;
+    botText.textContent = h[h.length - 1].bot;
+  }
+}
+
+/* ----------------------------------------------------------
+   ⭐ CARGAR DATOS DEL USUARIO DESDE BACKEND (/userinfo)
+----------------------------------------------------------- */
+async function loadUserInfo() {
+  try {
+    const res = await fetch("https://chatbot-xzhi.onrender.com/userinfo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        id: session.user.id,
+        email: session.user.email
+      })
+    });
+
+    const data = await res.json();
+    console.log("Perfil recibido desde backend:", data);
+
+    window.profile = data;   <!-- FIX 2 -->
+    return data;
+
+  } catch (err) {
+    console.error("Error cargando userinfo:", err);
+    return null;
+  }
+}
+
+  
+/* ----------------------------------------------------------
+   ⭐ SALUDO INICIAL — AHORA USANDO window.profile
+----------------------------------------------------------- */
+window.addEventListener("load", async () => {
+
+  chooseBestVoice();
+  
+  await loadUserInfo();   <!-- FIX 3 -->
+   console.log("PROFILE AFTER LOAD:", window.profile);                     
+  const firstname = window.profile?.firstname || "student";
+
+  const today = getTodayDate();
+  const lastDate = localStorage.getItem("lastConnectionDate");
+
+  let greeting = "";
+
+  if (lastDate === today) {
+    loadLastMessage();
+    greeting = "";
+  } else {
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric"
+    });
+
+    greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+
+    botText.textContent = greeting;
+    saveHistory("", greeting);
+  }
+
+  localStorage.setItem("lastConnectionDate", today);
+});
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+/* ----------------------------------------------------------
+   START SESSION — DESBLOQUEO + REPRODUCCIÓN DEL SALUDO
+----------------------------------------------------------- */
+const startSessionBtn = document.getElementById("startSessionBtn");
+
+startSessionBtn.onclick = async () => {
+  if (!ttsContext) {
+    ttsContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (ttsContext.state === "suspended") {
+    await ttsContext.resume();
+  }
+
+  try {
+    if (!mediaStream) {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+  } catch (err) {
+    console.warn("Error desbloqueando audio:", err);
+  }
+
+  const greeting = botText.textContent.trim();
+  if (greeting) {
+    fetch("https://chatbot-xzhi.onrender.com/tts", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ text: greeting })
+    })
+    .then(r => r.json())
+    .then(data => {
+      lastBotText = greeting;
+      lastBotAudio = data.audio;
+      playBackendTTS(greeting, data.audio);
+    });
+  }
+
+  startBtn.disabled = false;
+  startSessionBtn.style.display = "none";
+};
+
+/* ----------------------------------------------------------
+   BOTÓN HABLAR
+----------------------------------------------------------- */
+startBtn.onclick = async () => {
+
+  if (!mediaStream) {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+
+  mediaRecorder = new MediaRecorder(mediaStream);
+  audioChunks = [];
+
+  mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+  mediaRecorder.onstop = async () => {
+    userText.textContent = "";
+
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "audio.webm");
+
+    const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: formData
+    });
+
+    const sttData = await sttRes.json();
+    const transcript = sttData.text || "";
+    userText.textContent = transcript;
+
+    const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
+    const last3 = fullHistory.slice(-3);
+
+    const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        message: transcript,
+        history: last3,
+        userId: window.profile?.id || session.user.id,      
+        firstname: window.profile.firstname,
+        lastname: window.profile.lastname,
+        email: window.profile.email
+      })
+    });
+
+    const data = await chatRes.json();
+    const response = data.reply || "Error";
+    botText.textContent = response;
+
+    saveHistory(transcript, response);
+
+    lastBotText = response;
+    lastBotAudio = data.audio;
+
+    const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
+    timeSpent.textContent = formatTime(remaining);
+    timeRow.style.display = "block";
+
+    playBackendTTS(response, data.audio);
+  };
+
+  audioContext = new AudioContext();
+  const source = audioContext.createMediaStreamSource(mediaStream);
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048;
+  source.connect(analyser);
+
+  const SILENCE_THRESHOLD = 0.04;
+  const SILENCE_DURATION = 1200;
+
+  const MAX_RECORDING_TIME = 10000;
+  const recordingStart = Date.now();
+
+  let silenceStart = Date.now();
+
+  function checkSilence() {
+    const data = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(data);
+
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = (data[i] - 128) / 128;
+      sum += v * v;
+    }
+    const rms = Math.sqrt(sum / data.length);
+
+    if (Date.now() - recordingStart > MAX_RECORDING_TIME) {
+      mediaRecorder.stop();
+      return;
+    }
+
+    if (rms < SILENCE_THRESHOLD) {
+      if (Date.now() - silenceStart > SILENCE_DURATION) {
+        mediaRecorder.stop();
+        return;
+      }
+    } else {
+      silenceStart = Date.now();
+    }
+
+    requestAnimationFrame(checkSilence);
+  }
+
+  mediaRecorder.start();
+  userText.textContent = "(Escuchando...)";
+  checkSilence();
+};
+
+/* ----------------------------------------------------------
+   TTS BACKEND — WebAudio
+----------------------------------------------------------- */
+async function playBackendTTS(text, base64Audio) {
+  try {
+    if (!ttsContext) {
+      console.warn("ttsContext no inicializado; ¿se pulsó Start Session?");
+      return;
+    }
+  
+    if (ttsContext.state === "suspended") {
+      try {
+        await ttsContext.resume();
+      } catch (e) {
+        console.log("Error reanudando ttsContext (fase decode):", e);
+      }
+    }
+
+    const arrayBuffer = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0)).buffer;
+    const audioBuffer = await ttsContext.decodeAudioData(arrayBuffer);
+
+    const source = ttsContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(ttsContext.destination);
+
+    avatar.src = "teachergif2.gif";
+
+    const ttsStart = Date.now();
+
+    source.onended = () => {
+      console.log("🔚 TTS terminó");
+      const ttsDuration = (Date.now() - ttsStart) / 1000;
+      avatar.src = "avatarprofemujer2.jpg";
+       console.log("🚀 Voy a enviar /ttsTime. profile =", window.profile);
+
+      fetch("https://chatbot-xzhi.onrender.com/ttsTime", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          seconds: ttsDuration,
+          userId: window.profile?.id || session.user.id
+        })
+      })
+      .then(r => r.json())
+      .then(d => {
+        console.log("📬 Respuesta /ttsTime:", d);
+        const remaining = Math.max(300 - d.total, 0);
+        timeSpent.textContent = formatTime(remaining);
+      });
+    };
+
+    if (ttsContext.state === "suspended") {
+      try {
+        await ttsContext.resume();
+      } catch (e) {
+        console.warn("No se pudo reanudar ttsContext justo antes de reproducir:", e);
+      }
+    }
+
+    source.start(0);
+
+  } catch (err) {
+    console.warn("Error TTS backend:", err);
+  }
+}
+
+/* ----------------------------------------------------------
+   BOTÓN REPETIR 🔁
+----------------------------------------------------------- */
+document.getElementById("repeatBtn").onclick = () => {
+  if (lastBotAudio) {
+    playBackendTTS(lastBotText, lastBotAudio);
+  }
+};
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+</body>
+</html>
