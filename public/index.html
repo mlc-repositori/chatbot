@@ -62,7 +62,7 @@
     .voice-controls {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       margin-bottom: 15px;
     }
 
@@ -94,12 +94,26 @@
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
-    /* ⭐ Business English submenu */
+    /* ⭐ Botón secundario Business */
+    .secondary-btn {
+      padding: 10px 14px;
+      font-size: 16px;
+      background-color: #555;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .secondary-btn:hover {
+      background-color: #444;
+    }
+
+    /* ⭐ Submenú Business */
     #businessMenu button.submenu-btn {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       margin-top: 6px;
-      font-size: clamp(16px, 3vw, 20px);
+      font-size: 16px;
       background-color: #222;
       color: #fff;
       border: none;
@@ -107,7 +121,7 @@
       cursor: pointer;
     }
     #businessMenu button.submenu-btn:hover {
-      opacity: 0.8;
+      opacity: 0.85;
     }
   </style>
 </head>
@@ -145,10 +159,13 @@ window.profile = null;
 
     <button id="startSessionBtn" class="start-session-btn">▶️ Start session</button>
 
-    <!-- ⭐ BOTÓN BUSINESS ENGLISH -->
-    <button id="businessBtn" class="start-session-btn" style="background-color:#333;">
-      💼 Business English
-    </button>
+    <div class="voice-controls">
+      <button id="startBtn" disabled>🎤</button>
+      <button id="repeatBtn">🔁</button>
+
+      <!-- ⭐ BOTÓN BUSINESS ENGLISH SECUNDARIO -->
+      <button id="businessBtn" class="secondary-btn">💼 Business</button>
+    </div>
 
     <!-- ⭐ SUBMENÚ BUSINESS ENGLISH -->
     <div id="businessMenu" style="display:none; margin-top:10px;">
@@ -161,11 +178,6 @@ window.profile = null;
       <button class="submenu-btn" data-mode="exit" style="background-color:#b30000;">
         ❌ Exit Business Mode
       </button>
-    </div>
-
-    <div class="voice-controls">
-      <button id="startBtn" disabled>🎤</button>
-      <button id="repeatBtn">🔁</button>
     </div>
 
     <p><strong>Tú:</strong> <span id="userText"></span></p>
@@ -227,35 +239,6 @@ function loadLastMessage() {
     botText.textContent = h[h.length - 1].bot;
   }
 }
-
-/* ----------------------------------------------------------
-   ⭐ CARGAR DATOS DEL USUARIO DESDE BACKEND (/userinfo)
------------------------------------------------------------ */
-async function loadUserInfo() {
-  try {
-    const res = await fetch("https://chatbot-xzhi.onrender.com/userinfo", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        id: session.user.id,
-        email: session.user.email
-      })
-    });
-
-    const data = await res.json();
-    window.profile = data;
-    return data;
-
-  } catch (err) {
-    console.error("Error cargando userinfo:", err);
-    return null;
-  }
-}
-
-  
 /* ----------------------------------------------------------
    ⭐ SALUDO INICIAL
 ----------------------------------------------------------- */
@@ -534,7 +517,6 @@ document.getElementById("repeatBtn").onclick = () => {
     playBackendTTS(lastBotText, lastBotAudio);
   }
 };
-
 /* ----------------------------------------------------------
    ⭐ BUSINESS ENGLISH MENU
 ----------------------------------------------------------- */
