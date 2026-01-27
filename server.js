@@ -323,9 +323,6 @@ app.post("/setBusinessMode", (req, res) => {
 /* ============================================================
    🤖 RUTA CHAT — GPT‑4o‑mini + TTS
 ============================================================ */
-console.log("🔎 businessModes en /chat:", businessModes);
-console.log("🔎 userId recibido en /chat:", userId);
-console.log("🔎 activeMode:", businessModes[userId]);
 
 app.post("/chat", async (req, res) => {
   console.log("📥 BODY CHAT:", req.body);
@@ -341,6 +338,9 @@ app.post("/chat", async (req, res) => {
   if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
 
   const effectiveUserId = userId || null;
+  console.log("🔎 businessModes en /chat:", businessModes);
+  console.log("🔎 userId recibido en /chat:", userId);
+  console.log("🔎 activeMode:", businessModes[userId]);
 
   const today = getToday();
   let used = 0;
