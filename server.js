@@ -387,22 +387,25 @@ app.post("/chat", async (req, res) => {
     });
   }
 
-  /* ============================================================
-     🧠 CHAT NORMAL
-  ============================================================ */
+/* ============================================================
+   🧠 CHAT NORMAL
+============================================================ */
 
-  let phasePrompt = "";
+let phasePrompt = "";
 const activeMode = businessModes[userId];
+
+// 👉 DECLARAR historyMessages AQUÍ, SIEMPRE
+let historyMessages = [];
 
 if (!activeMode) {
   phasePrompt = getPromptForPhase(ip, message);
 }
 
-
 let systemPrompt = "";
 
+// 👉 Ahora ya puedes usar historyMessages sin errores
 if (!activeMode) {
-  historyMessages = []; // ← reinicia la conversación
+  historyMessages = []; // reinicia la conversación
   systemPrompt = `
 You are an English tutor.
 Do NOT correct grammar unless the mistake makes the sentence hard to understand.
@@ -419,20 +422,21 @@ Follow the instructions strictly.
 `;
 }
 
+// 🔥 Inyectar modo Business
 if (activeMode) {
   systemPrompt += getBusinessPrompt(activeMode);
 }
 
+// 👉 Rellenar historial SOLO si NO estamos en modo Business
+if (!activeMode && Array.isArray(history)) {
+  history.forEach(turn => {
+    if (turn.user) historyMessages.push({ role: "user", content: turn.user });
+    if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
+  });
+}
 
+console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
-  let historyMessages = [];
-  if (Array.isArray(history)) {
-    history.forEach(turn => {
-      if (turn.user) historyMessages.push({ role: "user", content: turn.user });
-      if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
-    });
-  }
-  console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
   const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
