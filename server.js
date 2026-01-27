@@ -410,7 +410,7 @@ Current phase instructions: ${phasePrompt}
 `;
 
 // 🔥 Inyectar modo Business si está activo
-const activeMode = businessModes[userId];
+
 if (activeMode) {
   systemPrompt += getBusinessPrompt(activeMode);
 }
