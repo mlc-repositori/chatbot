@@ -402,6 +402,7 @@ if (!activeMode) {
 let systemPrompt = "";
 
 if (!activeMode) {
+  historyMessages = []; // ← reinicia la conversación
   systemPrompt = `
 You are an English tutor.
 Do NOT correct grammar unless the mistake makes the sentence hard to understand.
