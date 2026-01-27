@@ -305,8 +305,9 @@ Keep answers short and dynamic.
 
 app.post("/setBusinessMode", (req, res) => {
   const { userId, mode } = req.body;
-
+  console.log("📥 /setBusinessMode recibido:", { userId, mode });
   if (!userId) {
+    console.log("❌ No llegó userId");
     return res.status(400).json({ error: "Missing userId" });
   }
 
@@ -315,16 +316,20 @@ app.post("/setBusinessMode", (req, res) => {
   } else {
     businessModes[userId] = mode;
   }
-
+  console.log("💾 businessModes ahora:", businessModes);
   return res.json({ ok: true, activeMode: businessModes[userId] });
 });
 
 /* ============================================================
    🤖 RUTA CHAT — GPT‑4o‑mini + TTS
 ============================================================ */
+console.log("🔎 businessModes en /chat:", businessModes);
+console.log("🔎 userId recibido en /chat:", userId);
+console.log("🔎 activeMode:", businessModes[userId]);
+
 app.post("/chat", async (req, res) => {
   console.log("📥 BODY CHAT:", req.body);
-
+  
   const { message, history, firstname, lastname, userId, email } = req.body;
 
   await supabase.from("users").upsert({ userId, firstname, lastname, email });
