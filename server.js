@@ -25,7 +25,8 @@ const script = JSON.parse(fs.readFileSync("./script_b1_b2.json", "utf8"));
 // ------------------ SESIONES EN MEMORIA ------------------
 const sessions = {};
 const SESSION_LIMIT = 300; // 5 minutos
-
+// ------------------ BUSINESS MODES ------------------ 
+const businessModes = {};
 function getToday() {
   return new Date().toISOString().split("T")[0];
 }
@@ -271,6 +272,53 @@ function advancePhase(ip) {
   console.log(`➡️ IP ${ip} avanza a fase: ${sessions[ip].phase}`);
 }
 
+function getBusinessPrompt(mode) {
+  switch (mode) {
+    case "negotiation":
+      return `
+You are now in Business English: Negotiation mode.
+Use professional vocabulary, negotiation strategies, and realistic scenarios.
+Simulate a negotiation partner. Ask questions, propose terms, and challenge the student.
+Keep answers concise but realistic.
+`;
+
+    case "interview":
+      return `
+You are now in Business English: Job Interview mode.
+Act as an HR recruiter. Ask interview-style questions.
+Evaluate answers and give short feedback.
+Use formal tone and professional vocabulary.
+`;
+
+    case "sales":
+      return `
+You are now in Business English: Sales Call mode.
+Act as a potential client or prospect.
+Use objections, ask for clarifications, and simulate a real sales conversation.
+Keep answers short and dynamic.
+`;
+
+    default:
+      return "";
+  }
+}
+
+app.post("/setBusinessMode", (req, res) => {
+  const { userId, mode } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "Missing userId" });
+  }
+
+  if (mode === "exit") {
+    businessModes[userId] = null;
+  } else {
+    businessModes[userId] = mode;
+  }
+
+  return res.json({ ok: true, activeMode: businessModes[userId] });
+});
+
 /* ============================================================
    🤖 RUTA CHAT — GPT‑4o‑mini + TTS
 ============================================================ */
@@ -340,7 +388,7 @@ app.post("/chat", async (req, res) => {
 
   const phasePrompt = getPromptForPhase(ip, message);
 
-  const systemPrompt = `
+ let systemPrompt = `
 You are an English tutor.
 Do NOT correct grammar unless the mistake makes the sentence hard to understand.
 Ignore small errors.
@@ -349,6 +397,13 @@ Keep answers short (max 3 sentences).
 Always end with a question.
 Current phase instructions: ${phasePrompt}
 `;
+
+// 🔥 Inyectar modo Business si está activo
+const activeMode = businessModes[userId];
+if (activeMode) {
+  systemPrompt += getBusinessPrompt(activeMode);
+}
+
 
   let historyMessages = [];
   if (Array.isArray(history)) {
