@@ -141,7 +141,16 @@
 #toast.show {
   opacity: 1;
 }
- 
+
+.business-active {
+  background: linear-gradient(135deg, #ffcc33, #ff9900);
+  color: #000 !important;
+  box-shadow: 0 0 12px rgba(255, 170, 0, 0.9);
+  font-weight: bold;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
   </style>
 </head>
 
@@ -592,10 +601,14 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
     });
 
     if (mode !== "exit") {
+  businessBtn.classList.add("business-active");
+
   setTimeout(() => {
     showToast("Business English: " + mode.replace("_", " ") + " activated");
   }, 150);
+
 } else {
+  businessBtn.classList.remove("business-active");
   showToast("Business English deactivated");
 }
 
