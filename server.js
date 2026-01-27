@@ -391,7 +391,13 @@ app.post("/chat", async (req, res) => {
      🧠 CHAT NORMAL
   ============================================================ */
 
-  const phasePrompt = getPromptForPhase(ip, message);
+  let phasePrompt = "";
+const activeMode = businessModes[userId];
+
+if (!activeMode) {
+  phasePrompt = getPromptForPhase(ip, message);
+}
+
 
  let systemPrompt = `
 You are an English tutor.
@@ -438,7 +444,10 @@ if (activeMode) {
   const data = await openaiRes.json();
   const reply = data.choices?.[0]?.message?.content || "Error";
 
+ if (!activeMode) {
   advancePhase(ip);
+}
+
 
   const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
