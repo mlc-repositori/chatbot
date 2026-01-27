@@ -282,7 +282,7 @@ Simulate a negotiation partner. Ask questions, propose terms, and challenge the 
 Keep answers concise but realistic.
 `;
 
-    case "interview":
+    case "job_interview":
       return `
 You are now in Business English: Job Interview mode.
 Act as an HR recruiter. Ask interview-style questions.
