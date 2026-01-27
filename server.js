@@ -423,6 +423,7 @@ if (activeMode) {
       if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
     });
   }
+  console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
   const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
