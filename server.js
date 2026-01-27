@@ -399,7 +399,10 @@ if (!activeMode) {
 }
 
 
- let systemPrompt = `
+let systemPrompt = "";
+
+if (!activeMode) {
+  systemPrompt = `
 You are an English tutor.
 Do NOT correct grammar unless the mistake makes the sentence hard to understand.
 Ignore small errors.
@@ -408,12 +411,17 @@ Keep answers short (max 3 sentences).
 Always end with a question.
 Current phase instructions: ${phasePrompt}
 `;
-
-// 🔥 Inyectar modo Business si está activo
+} else {
+  systemPrompt = `
+You are now in Business English: ${activeMode.replace("_", " ")} mode.
+Follow the instructions strictly.
+`;
+}
 
 if (activeMode) {
   systemPrompt += getBusinessPrompt(activeMode);
 }
+
 
 
   let historyMessages = [];
