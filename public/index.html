@@ -597,8 +597,10 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${session.access_token}`
       },
-      body: JSON.stringify({ mode })
-    });
+      body: JSON.stringify({ 
+        userId: session.user.id,
+        mode })
+      });
 
     if (mode !== "exit") {
   businessBtn.classList.add("business-active");
