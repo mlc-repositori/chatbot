@@ -610,21 +610,25 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
       }, 150);
 
       // ⭐ AUTO‑INICIO DE ENTREVISTA
-      await fetch("https://chatbot-xzhi.onrender.com/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          message: "__start_interview__",   // ← TRIGGER
-          history: [],
-          userId: session.user.id,
-          firstname: session.user.user_metadata.first_name,
-          lastname: session.user.user_metadata.last_name,
-          email: session.user.email
-        })
-      });
+      const res = await fetch("https://chatbot-xzhi.onrender.com/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`
+  },
+  body: JSON.stringify({
+    message: "__start_interview__",
+    history: [],
+    userId: session.user.id,
+    firstname: session.user.user_metadata.first_name,
+    lastname: session.user.user_metadata.last_name,
+    email: session.user.email
+  })
+});
+
+const data = await res.json();
+appendMessage(data.reply);
+playAudioFromBase64(data.audio);
 
     } else {
       businessBtn.classList.remove("business-active");
