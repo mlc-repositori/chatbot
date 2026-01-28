@@ -340,10 +340,16 @@ app.post("/chat", async (req, res) => {
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
 
- // ❗ NO iniciar sesión normal si estamos en auto‑start o modo Business
-if (!sessions[ip] && message !== "__start_interview__" && !businessModes[userId]) {
+// Crear objeto de sesión si no existe (evita crashes)
+if (!sessions[ip]) {
+  sessions[ip] = {};   // ← crea el objeto vacío
+}
+
+// Solo iniciar sesión normal si NO estamos en modo Business
+if (!businessModes[userId] && message !== "__start_interview__") {
   initSession(ip);
 }
+
 
 
   if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
