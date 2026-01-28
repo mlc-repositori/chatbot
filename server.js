@@ -329,6 +329,12 @@ app.post("/chat", async (req, res) => {
   
   let { message, history, firstname, lastname, userId, email } = req.body;
 
+  // 🔍 LOGS DE DIAGNÓSTICO
+  console.log("🔍 LLEGÓ MENSAJE:", message);
+  console.log("🔍 ¿message === '__start_interview__'? →", message === "__start_interview__");
+  console.log("🔍 businessModes en /chat:", businessModes);
+  console.log("🔍 activeMode ANTES DE NADA:", businessModes[userId]);
+  console.log("🔍 ¿activeMode existe? →", !!businessModes[userId]);
 
   await supabase.from("users").upsert({ userId, firstname, lastname, email });
 
@@ -339,12 +345,13 @@ app.post("/chat", async (req, res) => {
   if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
 
   const effectiveUserId = userId || null;
-  console.log("🔎 businessModes en /chat:", businessModes);
+
   console.log("🔎 userId recibido en /chat:", userId);
-  console.log("🔎 activeMode:", businessModes[userId]);
+  console.log("🔎 activeMode (DESPUÉS DE SESSION):", businessModes[userId]);
 
   const today = getToday();
   let used = 0;
+
 
   if (effectiveUserId) {
     const { data } = await supabase
