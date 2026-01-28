@@ -340,7 +340,11 @@ app.post("/chat", async (req, res) => {
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
 
-  if (!sessions[ip]) initSession(ip);
+ // ❗ NO iniciar sesión normal si estamos en auto‑start o modo Business
+if (!sessions[ip] && message !== "__start_interview__" && !businessModes[userId]) {
+  initSession(ip);
+}
+
 
   if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
 
