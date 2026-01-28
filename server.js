@@ -327,7 +327,8 @@ app.post("/setBusinessMode", (req, res) => {
 app.post("/chat", async (req, res) => {
   console.log("📥 BODY CHAT:", req.body);
   
-  const { message, history, firstname, lastname, userId, email } = req.body;
+  let { message, history, firstname, lastname, userId, email } = req.body;
+
 
   await supabase.from("users").upsert({ userId, firstname, lastname, email });
 
