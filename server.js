@@ -397,15 +397,21 @@ const activeMode = businessModes[userId];
 // 👉 DECLARAR historyMessages AQUÍ, SIEMPRE
 let historyMessages = [];
 
+// 👉 Detectar trigger de auto‑inicio de entrevista
+let isAutoStart = false;
+if (message === "__start_interview__" && activeMode) {
+  isAutoStart = true;
+  message = "Start the interview.";
+}
+
 if (!activeMode) {
   phasePrompt = getPromptForPhase(ip, message);
 }
 
 let systemPrompt = "";
 
-// 👉 Ahora ya puedes usar historyMessages sin errores
+// 👉 Modo normal
 if (!activeMode) {
-  historyMessages = []; // reinicia la conversación
   systemPrompt = `
 You are an English tutor.
 Do NOT correct grammar unless the mistake makes the sentence hard to understand.
@@ -415,76 +421,96 @@ Keep answers short (max 3 sentences).
 Always end with a question.
 Current phase instructions: ${phasePrompt}
 `;
+
+  // cargar historial normal
+  if (Array.isArray(history)) {
+    history.forEach(turn => {
+      if (turn.user) historyMessages.push({ role: "user", content: turn.user });
+      if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
+    });
+  }
+
 } else {
+  // 👉 Modo Business
   systemPrompt = `
 You are now in Business English: ${activeMode.replace("_", " ")} mode.
 Follow the instructions strictly.
 `;
-}
 
-// 🔥 Inyectar modo Business
-if (activeMode) {
+  // resetear historial SOLO en auto‑start
+  if (isAutoStart) {
+    historyMessages = [];
+  } else if (Array.isArray(history)) {
+    // si no es auto‑start, cargar historial normal
+    history.forEach(turn => {
+      if (turn.user) historyMessages.push({ role: "user", content: turn.user });
+      if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
+    });
+  }
+
+  // añadir prompt Business
   systemPrompt += getBusinessPrompt(activeMode);
-}
 
-// 👉 Rellenar historial SOLO si NO estamos en modo Business
-if (!activeMode && Array.isArray(history)) {
-  history.forEach(turn => {
-    if (turn.user) historyMessages.push({ role: "user", content: turn.user });
-    if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
-  });
+  // 👉 Presentación inicial SOLO si es el primer turno
+  if (historyMessages.length === 0) {
+    systemPrompt += `
+Start the interview from the beginning.
+Introduce yourself as the HR recruiter.
+Thank the candidate for attending.
+Explain the position briefly.
+Then ask the first standard interview question: "Can you tell me about yourself?"
+`;
+  }
 }
 
 console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
+const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4.1-mini",
+    max_tokens: 120,
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...historyMessages,
+      { role: "user", content: message }
+    ]
+  })
+});
 
-  const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "gpt-4.1-mini",
-      max_tokens: 120,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...historyMessages,
-        { role: "user", content: message }
-      ]
-    })
-  });
+const data = await openaiRes.json();
+const reply = data.choices?.[0]?.message?.content || "Error";
 
-  const data = await openaiRes.json();
-  const reply = data.choices?.[0]?.message?.content || "Error";
-
- if (!activeMode) {
+if (!activeMode) {
   advancePhase(ip);
 }
 
+const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4o-mini-tts",
+    voice: "shimmer",
+    input: reply,
+    format: "wav"
+  })
+});
 
-  const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini-tts",
-      voice: "shimmer",
-      input: reply,
-      format: "wav"
-    })
-  });
+const arrayBuffer = await ttsRes.arrayBuffer();
+const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
 
-  const arrayBuffer = await ttsRes.arrayBuffer();
-  const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
-
-  res.json({
-    reply,
-    audio: audioBase64,
-    timeSpentToday: used
-  });
+res.json({
+  reply,
+  audio: audioBase64,
+  timeSpentToday: used
+});
 });
 /* ============================================================
    🔊 RUTA TTS — PARA EL SALUDO INICIAL
