@@ -482,7 +482,7 @@ Start the interview from the beginning.
 Introduce yourself as the HR recruiter.
 Thank the candidate for attending.
 Explain the position briefly.
-Then ask the first standard interview question: "Can you tell me about yourself?"
+Then ask the first standard interview question: 'Can you tell me about yourself?'
 `;
   }
 }
