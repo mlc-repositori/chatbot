@@ -325,6 +325,9 @@ app.post("/setBusinessMode", (req, res) => {
 ============================================================ */
 
 app.post("/chat", async (req, res) => {
+  console.log("🟦 Nueva conexión abierta");
+  req.on("close", () => console.log("🟥 Conexión cerrada por el cliente"));
+
   console.log("📥 BODY CHAT:", req.body);
   
   let { message, history, firstname, lastname, userId, email } = req.body;
