@@ -587,54 +587,145 @@ businessBtn.addEventListener("click", () => {
     businessMenu.style.display === "none" ? "block" : "none";
 });
 
-document.querySelectorAll(".submenu-btn").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const mode = btn.dataset.mode;
+/* ============================================================
+   🧠 CHAT NORMAL
+============================================================ */
 
-    await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ 
-        userId: session.user.id,
-        mode })
-      });
+let phasePrompt = "";
+const activeMode = businessModes[userId];
 
-    if (mode !== "exit") {
-  businessBtn.classList.add("business-active");
+// 👉 DECLARAR historyMessages AQUÍ, SIEMPRE
+let historyMessages = [];
 
-  setTimeout(() => {
-    showToast("Business English: " + mode.replace("_", " ") + " activated");
-  }, 150);
-
-} else {
-  businessBtn.classList.remove("business-active");
-  showToast("Business English deactivated");
+// 👉 Detectar trigger de auto‑inicio de entrevista
+let isAutoStart = false;
+if (message === "__start_interview__" && activeMode) {
+  isAutoStart = true;
+  message = "Start the interview."; // lo que verá el modelo
 }
 
+if (!activeMode) {
+  phasePrompt = getPromptForPhase(ip, message);
+}
 
-    businessMenu.style.display = "none";
-  });
+let systemPrompt = "";
+
+/* ============================================================
+   🟦 MODO NORMAL
+============================================================ */
+if (!activeMode) {
+  systemPrompt = `
+You are an English tutor.
+Do NOT correct grammar unless the mistake makes the sentence hard to understand.
+Ignore small errors.
+Focus on conversation, not correction.
+Keep answers short (max 3 sentences).
+Always end with a question.
+Current phase instructions: ${phasePrompt}
+`;
+
+  // cargar historial normal
+  if (Array.isArray(history)) {
+    history.forEach(turn => {
+      if (turn.user) historyMessages.push({ role: "user", content: turn.user });
+      if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
+    });
+  }
+
+/* ============================================================
+   🟦 MODO BUSINESS
+============================================================ */
+} else {
+
+  systemPrompt = `
+You are now in Business English: ${activeMode.replace("_", " ")} mode.
+Follow the instructions strictly.
+`;
+
+  // resetear historial SOLO en auto‑start
+  if (isAutoStart) {
+    historyMessages = [];
+  } else if (Array.isArray(history)) {
+    // si no es auto‑start, cargar historial normal
+    history.forEach(turn => {
+      if (turn.user) historyMessages.push({ role: "user", content: turn.user });
+      if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
+    });
+  }
+
+  // añadir prompt Business
+  systemPrompt += getBusinessPrompt(activeMode);
+
+  // 👉 Presentación inicial SOLO si es el primer turno
+  if (historyMessages.length === 0) {
+    systemPrompt += `
+Start the interview from the beginning.
+Introduce yourself as the HR recruiter.
+Thank the candidate for attending.
+Explain the position briefly.
+Then ask the first standard interview question: "Can you tell me about yourself?"
+`;
+  }
+}
+
+console.log("🧠 systemPrompt FINAL:", systemPrompt);
+
+/* ============================================================
+   🟦 LLAMADA A OPENAI
+============================================================ */
+
+const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4.1-mini",
+    max_tokens: 120,
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...historyMessages,
+      { role: "user", content: message }
+    ]
+  })
 });
 
-  function showToast(message) {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
+const data = await openaiRes.json();
+const reply = data.choices?.[0]?.message?.content || "Error";
 
-  // Reiniciar estado para permitir animación repetida
-  toast.classList.remove("show");
-
-  // Forzar repintado antes de añadir la clase
-  void toast.offsetWidth;
-
-  toast.classList.add("show");
-
-  setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2500);
+if (!activeMode) {
+  advancePhase(ip);
 }
+
+/* ============================================================
+   🔊 TTS
+============================================================ */
+
+const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4o-mini-tts",
+    voice: "shimmer",
+    input: reply,
+    format: "wav"
+  })
+});
+
+const arrayBuffer = await ttsRes.arrayBuffer();
+const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+
+res.json({
+  reply,
+  audio: audioBase64,
+  timeSpentToday: used
+});
+});
+
 
 
 </script>
