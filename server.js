@@ -325,46 +325,25 @@ app.post("/setBusinessMode", (req, res) => {
 ============================================================ */
 
 app.post("/chat", async (req, res) => {
-  console.log("🟦 Nueva conexión abierta");
-  req.on("close", () => console.log("🟥 Conexión cerrada por el cliente"));
-
   console.log("📥 BODY CHAT:", req.body);
   
-  let { message, history, firstname, lastname, userId, email } = req.body;
-
-  // 🔍 LOGS DE DIAGNÓSTICO
-  console.log("🔍 LLEGÓ MENSAJE:", message);
-  console.log("🔍 ¿message === '__start_interview__'? →", message === "__start_interview__");
-  console.log("🔍 businessModes en /chat:", businessModes);
-  console.log("🔍 activeMode ANTES DE NADA:", businessModes[userId]);
-  console.log("🔍 ¿activeMode existe? →", !!businessModes[userId]);
+  const { message, history, firstname, lastname, userId, email } = req.body;
 
   await supabase.from("users").upsert({ userId, firstname, lastname, email });
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
 
-// Crear objeto de sesión si no existe (evita crashes)
-if (!sessions[ip]) {
-  sessions[ip] = {};   // ← crea el objeto vacío
-}
-
-// Solo iniciar sesión normal si NO estamos en modo Business
-if (!businessModes[userId] && message !== "__start_interview__") {
-  initSession(ip);
-}
-
-
+  if (!sessions[ip]) initSession(ip);
 
   if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
 
   const effectiveUserId = userId || null;
-
+  console.log("🔎 businessModes en /chat:", businessModes);
   console.log("🔎 userId recibido en /chat:", userId);
-  console.log("🔎 activeMode (DESPUÉS DE SESSION):", businessModes[userId]);
+  console.log("🔎 activeMode:", businessModes[userId]);
 
   const today = getToday();
   let used = 0;
-
 
   if (effectiveUserId) {
     const { data } = await supabase
@@ -409,34 +388,24 @@ if (!businessModes[userId] && message !== "__start_interview__") {
   }
 
 /* ============================================================
-   🧠 CHAT NORMAL / BUSINESS
+   🧠 CHAT NORMAL
 ============================================================ */
 
 let phasePrompt = "";
 const activeMode = businessModes[userId];
 
-// 👉 DECLARAR historyMessages SIEMPRE
+// 👉 DECLARAR historyMessages AQUÍ, SIEMPRE
 let historyMessages = [];
 
-// 👉 Detectar trigger de auto‑inicio de entrevista
-let isAutoStart = false;
-if (message === "__start_interview__" && activeMode) {
-  isAutoStart = true;
-  message = "Start the interview.";
-}
-
-// 👉 Solo usar fases si NO estamos en modo Business
 if (!activeMode) {
   phasePrompt = getPromptForPhase(ip, message);
 }
 
 let systemPrompt = "";
 
-/* ============================================================
-   🟦 MODO NORMAL
-============================================================ */
+// 👉 Ahora ya puedes usar historyMessages sin errores
 if (!activeMode) {
-
+  historyMessages = []; // reinicia la conversación
   systemPrompt = `
 You are an English tutor.
 Do NOT correct grammar unless the mistake makes the sentence hard to understand.
@@ -446,109 +415,77 @@ Keep answers short (max 3 sentences).
 Always end with a question.
 Current phase instructions: ${phasePrompt}
 `;
-
-  // cargar historial normal
-  if (Array.isArray(history)) {
-    history.forEach(turn => {
-      if (turn.user) historyMessages.push({ role: "user", content: turn.user });
-      if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
-    });
-  }
-
-/* ============================================================
-   🟦 MODO BUSINESS
-============================================================ */
 } else {
-
   systemPrompt = `
 You are now in Business English: ${activeMode.replace("_", " ")} mode.
 Follow the instructions strictly.
 `;
+}
 
-  // resetear historial SOLO en auto‑start
-  if (isAutoStart) {
-    historyMessages = [];
-  } else if (Array.isArray(history)) {
-    history.forEach(turn => {
-      if (turn.user) historyMessages.push({ role: "user", content: turn.user });
-      if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
-    });
-  }
-
-  // añadir prompt Business
+// 🔥 Inyectar modo Business
+if (activeMode) {
   systemPrompt += getBusinessPrompt(activeMode);
+}
 
-  // 👉 Presentación inicial SOLO si es el primer turno
-  if (historyMessages.length === 0) {
-    systemPrompt += `
-Start the interview from the beginning.
-Introduce yourself as the HR recruiter.
-Thank the candidate for attending.
-Explain the position briefly.
-Then ask the first standard interview question: 'Can you tell me about yourself?'
-`;
-  }
+// 👉 Rellenar historial SOLO si NO estamos en modo Business
+if (!activeMode && Array.isArray(history)) {
+  history.forEach(turn => {
+    if (turn.user) historyMessages.push({ role: "user", content: turn.user });
+    if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
+  });
 }
 
 console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
-/* ============================================================
-   🤖 LLAMADA A OPENAI (SIEMPRE)
-============================================================ */
 
-const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    model: "gpt-4.1-mini",
-    max_tokens: 120,
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...historyMessages,
-      { role: "user", content: message }
-    ]
-  })
-});
+  const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4.1-mini",
+      max_tokens: 120,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...historyMessages,
+        { role: "user", content: message }
+      ]
+    })
+  });
 
-const data = await openaiRes.json();
-const reply = data.choices?.[0]?.message?.content || "Error";
+  const data = await openaiRes.json();
+  const reply = data.choices?.[0]?.message?.content || "Error";
 
-// avanzar fase SOLO en modo normal
-if (!activeMode) {
+ if (!activeMode) {
   advancePhase(ip);
 }
 
-/* ============================================================
-   🔊 TTS (SIEMPRE)
-============================================================ */
 
-const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    model: "gpt-4o-mini-tts",
-    voice: "shimmer",
-    input: reply,
-    format: "wav"
-  })
+  const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini-tts",
+      voice: "shimmer",
+      input: reply,
+      format: "wav"
+    })
+  });
+
+  const arrayBuffer = await ttsRes.arrayBuffer();
+  const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+
+  res.json({
+    reply,
+    audio: audioBase64,
+    timeSpentToday: used
+  });
 });
-
-const arrayBuffer = await ttsRes.arrayBuffer();
-const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
-
-res.json({
-  reply,
-  audio: audioBase64,
-  timeSpentToday: used
-});
-});
-
 /* ============================================================
    🔊 RUTA TTS — PARA EL SALUDO INICIAL
 ============================================================ */
