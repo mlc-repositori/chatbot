@@ -406,13 +406,13 @@ if (!businessModes[userId] && message !== "__start_interview__") {
   }
 
 /* ============================================================
-   🧠 CHAT NORMAL
+   🧠 CHAT NORMAL / BUSINESS
 ============================================================ */
 
 let phasePrompt = "";
 const activeMode = businessModes[userId];
 
-// 👉 DECLARAR historyMessages AQUÍ, SIEMPRE
+// 👉 DECLARAR historyMessages SIEMPRE
 let historyMessages = [];
 
 // 👉 Detectar trigger de auto‑inicio de entrevista
@@ -422,14 +422,18 @@ if (message === "__start_interview__" && activeMode) {
   message = "Start the interview.";
 }
 
+// 👉 Solo usar fases si NO estamos en modo Business
 if (!activeMode) {
   phasePrompt = getPromptForPhase(ip, message);
 }
 
 let systemPrompt = "";
 
-// 👉 Modo normal
+/* ============================================================
+   🟦 MODO NORMAL
+============================================================ */
 if (!activeMode) {
+
   systemPrompt = `
 You are an English tutor.
 Do NOT correct grammar unless the mistake makes the sentence hard to understand.
@@ -448,8 +452,11 @@ Current phase instructions: ${phasePrompt}
     });
   }
 
+/* ============================================================
+   🟦 MODO BUSINESS
+============================================================ */
 } else {
-  // 👉 Modo Business
+
   systemPrompt = `
 You are now in Business English: ${activeMode.replace("_", " ")} mode.
 Follow the instructions strictly.
@@ -459,7 +466,6 @@ Follow the instructions strictly.
   if (isAutoStart) {
     historyMessages = [];
   } else if (Array.isArray(history)) {
-    // si no es auto‑start, cargar historial normal
     history.forEach(turn => {
       if (turn.user) historyMessages.push({ role: "user", content: turn.user });
       if (turn.bot) historyMessages.push({ role: "assistant", content: turn.bot });
@@ -483,6 +489,10 @@ Then ask the first standard interview question: "Can you tell me about yourself?
 
 console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
+/* ============================================================
+   🤖 LLAMADA A OPENAI (SIEMPRE)
+============================================================ */
+
 const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
   method: "POST",
   headers: {
@@ -503,9 +513,14 @@ const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
 const data = await openaiRes.json();
 const reply = data.choices?.[0]?.message?.content || "Error";
 
+// avanzar fase SOLO en modo normal
 if (!activeMode) {
   advancePhase(ip);
 }
+
+/* ============================================================
+   🔊 TTS (SIEMPRE)
+============================================================ */
 
 const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
   method: "POST",
@@ -528,7 +543,6 @@ res.json({
   reply,
   audio: audioBase64,
   timeSpentToday: used
-});
 });
 /* ============================================================
    🔊 RUTA TTS — PARA EL SALUDO INICIAL
