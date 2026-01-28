@@ -600,20 +600,36 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
       body: JSON.stringify({ 
         userId: session.user.id,
         mode })
-      });
+    });
 
     if (mode !== "exit") {
-  businessBtn.classList.add("business-active");
+      businessBtn.classList.add("business-active");
 
-  setTimeout(() => {
-    showToast("Business English: " + mode.replace("_", " ") + " activated");
-  }, 150);
+      setTimeout(() => {
+        showToast("Business English: " + mode.replace("_", " ") + " activated");
+      }, 150);
 
-} else {
-  businessBtn.classList.remove("business-active");
-  showToast("Business English deactivated");
-}
+      // ⭐ AUTO‑INICIO DE ENTREVISTA
+      await fetch("https://chatbot-xzhi.onrender.com/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          message: "__start_interview__",   // ← TRIGGER
+          history: [],
+          userId: session.user.id,
+          firstname: session.user.user_metadata.first_name,
+          lastname: session.user.user_metadata.last_name,
+          email: session.user.email
+        })
+      });
 
+    } else {
+      businessBtn.classList.remove("business-active");
+      showToast("Business English deactivated");
+    }
 
     businessMenu.style.display = "none";
   });
