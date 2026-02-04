@@ -327,7 +327,8 @@ app.post("/setBusinessMode", (req, res) => {
 app.post("/chat", async (req, res) => {
   console.log("📥 BODY CHAT:", req.body);
   
-  const { message, history, firstname, lastname, userId, email } = req.body;
+  let { message, history, firstname, lastname, userId, email } = req.body;
+
 
   await supabase.from("users").upsert({ userId, firstname, lastname, email });
 
@@ -388,20 +389,29 @@ app.post("/chat", async (req, res) => {
   }
 
 /* ============================================================
-   🧠 CHAT NORMAL
+   🧠 CHAT NORMAL / BUSINESS
 ============================================================ */
 
 let phasePrompt = "";
 const activeMode = businessModes[userId];
 
-// 👉 DECLARAR historyMessages AQUÍ, SIEMPRE
+// 👉 DECLARAR historyMessages SIEMPRE
 let historyMessages = [];
+
+// 👉 Detectar si es auto‑inicio de entrevista
+let isAutoStart = false;
+if (activeMode && message === "__start_interview__") {
+  isAutoStart = true;
+  // el usuario no ha dicho nada aún, damos una orden genérica al modelo
+  message = "Start the interview.";
+}
 
 if (!activeMode) {
   phasePrompt = getPromptForPhase(ip, message);
 }
 
 let systemPrompt = "";
+
 
 // 👉 Ahora ya puedes usar historyMessages sin errores
 if (!activeMode) {
@@ -416,16 +426,27 @@ Always end with a question.
 Current phase instructions: ${phasePrompt}
 `;
 } else {
+  // 🟦 MODO BUSINESS
   systemPrompt = `
 You are now in Business English: ${activeMode.replace("_", " ")} mode.
 Follow the instructions strictly.
 `;
+
+  // Añadir instrucciones específicas del modo (job_interview, negotiation, etc.)
+  systemPrompt += getBusinessPrompt(activeMode);
+
+  // 🟨 Si es el primer turno de entrevista, forzamos presentación + primera pregunta
+  if (isAutoStart) {
+    systemPrompt += `
+Start the interview from the beginning.
+Introduce yourself as the HR recruiter.
+Thank the candidate for attending.
+Explain the position briefly.
+Then ask the first standard interview question: "Can you tell me about yourself?"
+`;
+  }
 }
 
-// 🔥 Inyectar modo Business
-if (activeMode) {
-  systemPrompt += getBusinessPrompt(activeMode);
-}
 
 // 👉 Rellenar historial SOLO si NO estamos en modo Business
 if (!activeMode && Array.isArray(history)) {
