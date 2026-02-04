@@ -437,6 +437,7 @@ Follow the instructions strictly.
 
   // 🟨 Si es el primer turno de entrevista, forzamos presentación + primera pregunta
   if (isAutoStart) {
+  if (activeMode === "job_interview") {
     systemPrompt += `
 Start the interview from the beginning.
 Introduce yourself as the HR recruiter.
@@ -445,6 +446,58 @@ Explain the position briefly.
 Then ask the first standard interview question: "Can you tell me about yourself?"
 `;
   }
+
+  if (activeMode === "client_meeting") {
+    systemPrompt += `
+Start the meeting professionally.
+Introduce yourself as the client's account manager.
+Thank them for joining the meeting.
+Explain the purpose of the meeting briefly.
+Then ask the first question: "Before we begin, could you tell me a bit about your company’s current needs?"
+`;
+  }
+
+  if (activeMode === "presentation") {
+    systemPrompt += `
+Start the presentation scenario.
+Introduce yourself as the presenter.
+Explain the topic of the presentation briefly.
+Set the context and the audience.
+Then begin with: "Let’s start with a quick overview. What do you already know about this topic?"
+`;
+  }
+
+  if (activeMode === "negotiation") {
+    systemPrompt += `
+Start the negotiation scenario.
+Introduce yourself as the negotiation counterpart.
+Set the context of the negotiation.
+Explain the goal of the meeting briefly.
+Then begin with: "Before we discuss terms, could you share your main priorities?"
+`;
+  }
+
+  if (activeMode === "sales_call") {
+    systemPrompt += `
+Start the sales call scenario.
+Introduce yourself as the potential client.
+Set the context of the call.
+Explain what you are looking for.
+Then begin with: "Before we continue, could you tell me more about your product or service?"
+`;
+  }
+
+  if (activeMode === "conflict_resolution") {
+    systemPrompt += `
+Start the conflict resolution scenario.
+Introduce yourself as the mediator or manager.
+Set the context of the conflict.
+Explain the goal of the conversation.
+Then begin with: "To understand the situation better, could you explain your perspective?"
+`;
+  }
+}
+
 }
 
 
