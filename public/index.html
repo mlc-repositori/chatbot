@@ -599,21 +599,71 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
       },
       body: JSON.stringify({ 
         userId: session.user.id,
-        mode })
-      });
+        mode
+      })
+    });
 
     if (mode !== "exit") {
-  businessBtn.classList.add("business-active");
+      businessBtn.classList.add("business-active");
 
-  setTimeout(() => {
-    showToast("Business English: " + mode.replace("_", " ") + " activated");
-  }, 150);
+      setTimeout(() => {
+        showToast("Business English: " + mode.replace("_", " ") + " activated");
+      }, 150);
 
-} else {
-  businessBtn.classList.remove("business-active");
-  showToast("Business English deactivated");
-}
+      // 🧹 borrar historial local del día
+      localStorage.removeItem(getHistoryKey());
+      userText.textContent = "";
+      botText.textContent = "";
 
+      // ⭐ AUTO‑INICIO DE ENTREVISTA
+      try {
+        const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            message: "__start_interview__",   // trigger especial
+            history: [],
+            userId: window.profile?.id || session.user.id,
+            firstname: window.profile?.firstname || session.user.user_metadata.first_name,
+            lastname: window.profile?.lastname || session.user.user_metadata.last_name,
+            email: window.profile?.email || session.user.email
+          })
+        });
+
+        const data = await chatRes.json();
+        const response = data.reply || "Error";
+
+        // mostrar mensaje inicial de la entrevista
+        botText.textContent = response;
+        saveHistory("", response);
+
+        // preparar repetición
+        lastBotText = response;
+        lastBotAudio = data.audio;
+
+        // actualizar tiempo restante si viene
+        if (typeof data.timeSpentToday === "number") {
+          const remaining = Math.max(300 - data.timeSpentToday, 0);
+          timeSpent.textContent = formatTime(remaining);
+          timeRow.style.display = "block";
+        }
+
+        // reproducir TTS inicial
+        if (data.audio) {
+          playBackendTTS(response, data.audio);
+        }
+
+      } catch (err) {
+        console.error("Error en auto‑inicio Business:", err);
+      }
+
+    } else {
+      businessBtn.classList.remove("business-active");
+      showToast("Business English deactivated");
+    }
 
     businessMenu.style.display = "none";
   });
