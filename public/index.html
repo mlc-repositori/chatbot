@@ -222,6 +222,26 @@ window.profile = null;
 
 <script>
 console.log("JS CARGADO");
+let wakeLock = null;
+
+async function keepScreenAwake() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      console.log("🔋 Wake Lock activado");
+    }
+  } catch (err) {
+    console.warn("Wake Lock error:", err);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release();
+    wakeLock = null;
+    console.log("🔋 Wake Lock liberado");
+  }
+}
 
 const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -522,6 +542,7 @@ async function playBackendTTS(text, base64Audio) {
 
     const arrayBuffer = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0)).buffer;
     const audioBuffer = await ttsContext.decodeAudioData(arrayBuffer);
+    await keepScreenAwake();
 
     const source = ttsContext.createBufferSource();
     source.buffer = audioBuffer;
@@ -532,6 +553,7 @@ async function playBackendTTS(text, base64Audio) {
     const ttsStart = Date.now();
 
     source.onended = () => {
+      releaseWakeLock();
       const ttsDuration = (Date.now() - ttsStart) / 1000;
       avatar.src = "avatarprofemujer2.jpg";
 
