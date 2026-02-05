@@ -97,8 +97,7 @@ app.post("/stt", upload.single("audio"), async (req, res) => {
     formData.append("language", "en");
     formData.append("task", "transcribe");
     formData.append("temperature", "0");
-    formData.append("prompt", "Transcribe exactly what the user says. Do not correct grammar. Do not fix mistakes. Do not rewrite sentences. Keep errors exactly as spoken.");
-
+    
     const openaiRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
