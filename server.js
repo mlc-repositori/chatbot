@@ -416,14 +416,15 @@ let systemPrompt = "";
 
 // 👉 Ahora ya puedes usar historyMessages sin errores
 // Do NOT correct grammar unless the mistake makes the sentence hard to understand.
-
+//Focus on conversation, not correction.
+  
 if (!activeMode) {
   historyMessages = []; // reinicia la conversación
   systemPrompt = `
 You are an English tutor.
-Gently correct important mystakes
+Gently correct only important mystakes
 Ignore small errors.
-Focus on conversation, not correction.
+
 Keep answers short (max 3 sentences).
 Always end with a question.
 Current phase instructions: ${phasePrompt}
