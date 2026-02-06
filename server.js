@@ -415,11 +415,12 @@ let systemPrompt = "";
 
 
 // 👉 Ahora ya puedes usar historyMessages sin errores
+// Do NOT correct grammar unless the mistake makes the sentence hard to understand.
 if (!activeMode) {
   historyMessages = []; // reinicia la conversación
   systemPrompt = `
 You are an English tutor.
-// Do NOT correct grammar unless the mistake makes the sentence hard to understand.
+
 Ignore small errors.
 Focus on conversation, not correction.
 Keep answers short (max 3 sentences).
