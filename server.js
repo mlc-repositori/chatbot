@@ -374,7 +374,7 @@ if (effectiveUserId) {
     .select("daily_limit_seconds")
     .eq("id", effectiveUserId)
     .single();
-  console.log("👤 /chat → userProfile from users2:", { userProfile, userErr });
+  // console.log("👤 /chat → userProfile from users2:", { userProfile, userErr });
   if (userProfile?.daily_limit_seconds) {
     dailyLimit = userProfile.daily_limit_seconds;
   }
