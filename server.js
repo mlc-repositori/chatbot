@@ -364,7 +364,7 @@ if (effectiveUserId) {
 
   used = data?.seconds || 0;
 }
-
+console.log("⏱ /chat → user:", effectiveUserId, "used today (seconds):", used);
 // 2) Límite diario real del usuario
 let dailyLimit = 300; // fallback
 
@@ -374,12 +374,12 @@ if (effectiveUserId) {
     .select("daily_limit_seconds")
     .eq("id", effectiveUserId)
     .single();
-
+  console.log("👤 /chat → userProfile from users2:", { userProfile, userErr });
   if (userProfile?.daily_limit_seconds) {
     dailyLimit = userProfile.daily_limit_seconds;
   }
 }
-
+console.log("🚦 /chat → final dailyLimit (seconds):", dailyLimit);
 // 3) Bloqueo si supera el límite
 if (used >= dailyLimit) {
   const limitMessage = `I'm sorry, but you reached your daily limit of ${dailyLimit / 60} minutes for today, but don't be sad, we can meet again tomorrow.`;
