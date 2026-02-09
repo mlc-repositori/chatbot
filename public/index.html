@@ -467,8 +467,10 @@ startBtn.onclick = async () => {
 
     lastBotText = response;
     lastBotAudio = data.audio;
+    const limit = data.dailyLimit || window.profile.daily_limit_seconds || 300;
+    const remaining = Math.max(limit - (data.timeSpentToday || 0), 0);
 
-    const remaining = Math.max(300 - (data.timeSpentToday || 0), 0);
+   /*  const remaining = Math.max(300 - (data.timeSpentToday || 0), 0); */
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
 
@@ -570,7 +572,10 @@ async function playBackendTTS(text, base64Audio) {
       })
       .then(r => r.json())
       .then(d => {
-        const remaining = Math.max(300 - d.total, 0);
+        /* const remaining = Math.max(300 - d.total, 0); */
+        const limit = window.profile.daily_limit_seconds || 300;
+        const remaining = Math.max(limit - d.total, 0);
+
         timeSpent.textContent = formatTime(remaining);
       });
     };
@@ -668,7 +673,10 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
 
         // actualizar tiempo restante si viene
         if (typeof data.timeSpentToday === "number") {
-          const remaining = Math.max(300 - data.timeSpentToday, 0);
+          /* const remaining = Math.max(300 - data.timeSpentToday, 0); */
+          const limit = data.dailyLimit || window.profile.daily_limit_seconds || 300;
+          const remaining = Math.max(limit - data.timeSpentToday, 0);
+
           timeSpent.textContent = formatTime(remaining);
           timeRow.style.display = "block";
         }
