@@ -359,35 +359,67 @@ app.post("/chat", async (req, res) => {
   }
 
   /* ============================================================
-     ⛔ LÍMITE DE TIEMPO — AHORA CON TTS
-  ============================================================ */
-  if (used >= SESSION_LIMIT) {
-    const limitMessage = "I'm sorry, but you reached your 5‑minute limit for today, but don't be sad, we can meet again tomorrow.";
+   ⛔ LÍMITE DE TIEMPO — AHORA DINÁMICO DESDE SUPABASE
+============================================================ */
 
-    // Generar TTS también para este mensaje
-    const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini-tts",
-        voice: "shimmer",
-        input: limitMessage,
-        format: "wav"
-      })
-    });
+// 1) Tiempo usado hoy
+let used = 0;
 
-    const arrayBuffer = await ttsRes.arrayBuffer();
-    const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+if (effectiveUserId) {
+  const { data } = await supabase
+    .from("usage2")
+    .select("seconds")
+    .eq("user_id", effectiveUserId)
+    .eq("date", today)
+    .maybeSingle();
 
-    return res.json({
-      reply: limitMessage,
-      audio: audioBase64,
-      timeSpentToday: used
-    });
+  used = data?.seconds || 0;
+}
+
+// 2) Límite diario real del usuario
+let dailyLimit = 300; // fallback
+
+if (effectiveUserId) {
+  const { data: userProfile } = await supabase
+    .from("users2")
+    .select("daily_limit_seconds")
+    .eq("id", effectiveUserId)
+    .single();
+
+  if (userProfile?.daily_limit_seconds) {
+    dailyLimit = userProfile.daily_limit_seconds;
   }
+}
+
+// 3) Bloqueo si supera el límite
+if (used >= dailyLimit) {
+  const limitMessage = `I'm sorry, but you reached your daily limit of ${dailyLimit / 60} minutes for today, but don't be sad, we can meet again tomorrow.`;
+
+  const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini-tts",
+      voice: "shimmer",
+      input: limitMessage,
+      format: "wav"
+    })
+  });
+
+  const arrayBuffer = await ttsRes.arrayBuffer();
+  const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+
+  return res.json({
+    reply: limitMessage,
+    audio: audioBase64,
+    timeSpentToday: used,
+    dailyLimit
+  });
+}
+
 
 /* ============================================================
    🧠 CHAT NORMAL / BUSINESS
