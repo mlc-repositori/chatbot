@@ -345,18 +345,7 @@ app.post("/chat", async (req, res) => {
   console.log("🔎 activeMode:", businessModes[userId]);
 
   const today = getToday();
-  let used = 0;
-
-  if (effectiveUserId) {
-    const { data } = await supabase
-      .from("usage2")
-      .select("seconds")
-      .eq("user_id", effectiveUserId)
-      .eq("date", today)
-      .maybeSingle();
-
-    used = data?.seconds || 0;
-  }
+ 
 
   /* ============================================================
    ⛔ LÍMITE DE TIEMPO — AHORA DINÁMICO DESDE SUPABASE
