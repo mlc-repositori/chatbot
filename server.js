@@ -151,15 +151,15 @@ function pickRandomSubtopic(topicKey, previousSubtopic = null) {
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-function initSession(ip) {
-  const prev = sessions[ip] || {};
+function initSession(sessionKey) {
+  const prev = sessions[sessionKey] || {};
   const previousTopic = prev.topic || prev.lastTopic || null;
   const topic = pickRandomTopic(previousTopic);
 
   const previousSubtopic = prev.subtopic || prev.lastSubtopic || null;
   const subtopic = pickRandomSubtopic(topic, previousSubtopic);
 
-  sessions[ip] = {
+  sessions[sessionKey] = {
     phase: "warmup",
     topic,
     subtopic,
@@ -172,11 +172,12 @@ function initSession(ip) {
     lastSubtopic: subtopic
   };
 
-  console.log(`🆕 Nueva sesión para IP ${ip} → Tema: ${topic}, Subtema: ${subtopic}`);
+  console.log(`🆕 Nueva sesión para sessionKey ${sessionKey} → Tema: ${topic}, Subtema: ${subtopic}`);
 }
 
-function getPromptForPhase(ip, userMessage) {
-  const session = sessions[ip];
+function getPromptForPhase(sessionKey, userMessage) {
+  const session = sessions[sessionKey];
+
   const phase = session.phase;
   const topicKey = session.topic;
   const subtopicKey = session.subtopic;
@@ -229,8 +230,8 @@ function getPromptForPhase(ip, userMessage) {
   return "Continue the conversation naturally.";
 }
 
-function advancePhase(ip) {
-  const session = sessions[ip];
+function advancePhase(sessionKey) { 
+  const session = sessions[sessionKey]; 
   const phase = session.phase;
   const topicKey = session.topic;
   const subtopicKey = session.subtopic;
@@ -270,7 +271,7 @@ function advancePhase(ip) {
     initSession(ip);
   }
 
-  console.log(`➡️ IP ${ip} avanza a fase: ${sessions[ip].phase}`);
+  console.log(`➡️ sessionKey ${sessionKey} avanza a fase: ${sessions[sessionKey].phase}`);
 }
 
 function getBusinessPrompt(mode) {
@@ -334,10 +335,17 @@ app.post("/chat", async (req, res) => {
   await supabase.from("users").upsert({ userId, firstname, lastname, email });
 
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
+const effectiveUserId = userId || null;
 
-  if (!sessions[ip]) initSession(ip);
+// 🔑 Clave de sesión: userId si existe, si no IP
+const sessionKey = effectiveUserId || ip;
 
-  if (!sessions[ip].userId && userId) sessions[ip].userId = userId;
+if (!sessions[sessionKey]) initSession(sessionKey);
+
+if (!sessions[sessionKey].userId && effectiveUserId) {
+  sessions[sessionKey].userId = effectiveUserId;
+}
+
 
   const effectiveUserId = userId || null;
   console.log("🔎 businessModes en /chat:", businessModes);
@@ -429,7 +437,8 @@ if (activeMode && message === "__start_interview__") {
 }
 
 if (!activeMode) {
-  phasePrompt = getPromptForPhase(ip, message);
+  phasePrompt = getPromptForPhase(sessionKey, message);
+
 }
 
 let systemPrompt = "";
@@ -558,7 +567,8 @@ console.log("🧠 systemPrompt FINAL:", systemPrompt);
   const reply = data.choices?.[0]?.message?.content || "Error";
 
  if (!activeMode) {
-  advancePhase(ip);
+  advancePhase(sessionKey);
+
 }
 
 
