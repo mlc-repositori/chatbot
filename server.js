@@ -347,7 +347,7 @@ if (!sessions[sessionKey].userId && effectiveUserId) {
 }
 
 
-  const effectiveUserId = userId || null;
+  
   console.log("🔎 businessModes en /chat:", businessModes);
   console.log("🔎 userId recibido en /chat:", userId);
   console.log("🔎 activeMode:", businessModes[userId]);
