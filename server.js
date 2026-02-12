@@ -268,7 +268,7 @@ function advancePhase(sessionKey) {
       session.phase = "wrapup";
     }
   } else if (phase === "wrapup") {
-    initSession(ip);
+    initSession(sessionKey);
   }
 
   console.log(`➡️ sessionKey ${sessionKey} avanza a fase: ${sessions[sessionKey].phase}`);
