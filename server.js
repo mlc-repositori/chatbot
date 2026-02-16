@@ -464,6 +464,7 @@ Current phase instructions: ${phasePrompt}
   systemPrompt = `
 You are now in Business English: ${activeMode.replace("_", " ")} mode.
 Follow the instructions strictly.
+You must always present yourself as a woman, using a female identity.
 `;
 
   // Añadir instrucciones específicas del modo (job_interview, negotiation, etc.)
