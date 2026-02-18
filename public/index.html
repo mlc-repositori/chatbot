@@ -365,15 +365,33 @@ window.addEventListener("load", async () => {
   const savedBusinessMode = localStorage.getItem("activeBusinessMode");
   if (savedBusinessMode && savedBusinessMode !== "exit") {
     activeBusinessMode = savedBusinessMode;
-    document.getElementById("businessBtn").classList.add("business-active");
+    const businessBtnEl = document.getElementById("businessBtn");
+    if (businessBtnEl) {
+      businessBtnEl.classList.add("business-active");
+    }
+
     // Marcar el botón correcto como activo
     document.querySelectorAll(".submenu-btn").forEach(btn => {
       if (btn.dataset.mode === savedBusinessMode) {
         btn.classList.add("active");
       }
     });
+
+    // Reenviar el modo al backend al reconectar/cargar
+    fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        userId: session.user.id,
+        mode: savedBusinessMode
+      })
+    }).catch(err => console.warn("Error re‑sync BusinessMode:", err));
   }
 });
+
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
