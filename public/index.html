@@ -1,25 +1,30 @@
-<label for="voiceSpeed">Select Voice Speed:</label>
-<select id="voiceSpeed" onchange="saveVoiceSpeed(this.value)">
-    <option value="1">Normal (1x)</option>
-    <option value="0.75">Slow (0.75x)</option>
-    <option value="1.5">Fast (1.5x)</option>
-    <option value="2">Very Fast (2x)</option>
-</select>
-
-<script>
-    // Function to save selected voice speed to localStorage
-    function saveVoiceSpeed(speed) {
-        localStorage.setItem('voiceSpeed', speed);
-        // Here you would normally send the speed to your backend
-        // Example: sendToBackend(speed);
-    }
-
-    // Function to initialize the select element with the stored value
-    function initVoiceSpeed() {
-        const voiceSpeed = localStorage.getItem('voiceSpeed') || '1';
-        document.getElementById('voiceSpeed').value = voiceSpeed;
-    }
-
-    // Call the initialization function on page load
-    window.onload = initVoiceSpeed;
-</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+</head>
+<body>
+    <div id="chatbot-container">
+        <div id="chatbot"></div>
+        <label for="voice-speed">Voice Speed:</label>
+        <select id="voice-speed">
+            <option value="0.5">0.5x</option>
+            <option value="1.0">1.0x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2.0">2.0x</option>
+        </select>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#voice-speed').change(function() {
+                const speed = $(this).val();
+                // Set the voice speed in the chatbot logic here.
+                console.log('Voice speed set to: ' + speed);
+            });
+        });
+    </script>
+</body>
+</html>
