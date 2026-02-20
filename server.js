@@ -391,7 +391,7 @@ console.log("🚦 /chat → final dailyLimit (seconds):", dailyLimit);
 // 3) Bloqueo si supera el límite
 if (used >= dailyLimit) {
   const limitMessage = `I'm sorry, but you reached your daily limit of ${dailyLimit / 60} minutes for today, but don't be sad, we can meet again tomorrow.`;
-  const speed = req.body.speed || 1.2;
+  const speed = req.body.speed || 0.8;
   const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: {
@@ -573,7 +573,7 @@ console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
 }
 
-  const speed = req.body.speed || 1.2;
+  const speed = req.body.speed || 0.8;
   const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: {
@@ -605,7 +605,7 @@ app.post("/tts", async (req, res) => {
   const { text } = req.body;
 
   try {
-    const speed = req.body.speed || 1.2;
+    const speed = req.body.speed || 0.8;
     const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: {
