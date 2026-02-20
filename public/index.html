@@ -234,6 +234,7 @@ window.profile = null;
 console.log("JS CARGADO");
 let wakeLock = null;
 let activeBusinessMode = null;
+let isFirstInteractionOfDay = false;
 
 async function keepScreenAwake() {
   try {
@@ -330,8 +331,23 @@ async function loadUserInfo() {
 }
 
 /* ----------------------------------------------------------
-   ⭐ SALUDO INICIAL
+   ⭐ FUNCIÓN PARA DESACTIVAR BUSINESS MODE
 ----------------------------------------------------------- */
+function deactivateBusinessMode() {
+  activeBusinessMode = null;
+  const businessBtnEl = document.getElementById("businessBtn");
+  if (businessBtnEl) {
+    businessBtnEl.classList.remove("business-active");
+  }
+  document.querySelectorAll(".submenu-btn").forEach(b => {
+    b.classList.remove("active");
+  });
+  localStorage.removeItem("activeBusinessMode");
+}
+
+/* ----------------------------------------------------------
+   ⭐ SALUDO INICIAL
+-------------------------------------------------- */
 window.addEventListener("load", async () => {
 
   chooseBestVoice();
@@ -345,9 +361,44 @@ window.addEventListener("load", async () => {
   let greeting = "";
 
   if (lastDate === today) {
+    // No es el primer acceso del día, cargar último mensaje y restaurar Business Mode
     loadLastMessage();
+    isFirstInteractionOfDay = false;
     greeting = "";
+
+    // Restaurar el modo business activo si existe
+    const savedBusinessMode = localStorage.getItem("activeBusinessMode");
+    if (savedBusinessMode && savedBusinessMode !== "exit") {
+      activeBusinessMode = savedBusinessMode;
+      const businessBtnEl = document.getElementById("businessBtn");
+      if (businessBtnEl) {
+        businessBtnEl.classList.add("business-active");
+      }
+
+      // Marcar el botón correcto como activo
+      document.querySelectorAll(".submenu-btn").forEach(btn => {
+        if (btn.dataset.mode === savedBusinessMode) {
+          btn.classList.add("active");
+        }
+      });
+
+      // Reenviar el modo al backend al reconectar/cargar
+      fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          userId: session.user.id,
+          mode: savedBusinessMode
+        })
+      }).catch(err => console.warn("Error re‑sync BusinessMode:", err));
+    }
+
   } else {
+    // Es el primer acceso del día
+    isFirstInteractionOfDay = true;
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", {
       weekday: "long", year: "numeric", month: "long", day: "numeric"
@@ -357,41 +408,13 @@ window.addEventListener("load", async () => {
 
     botText.textContent = greeting;
     saveHistory("", greeting);
+
+    // 🧹 Desactivar Business Mode al inicio del día
+    deactivateBusinessMode();
   }
 
   localStorage.setItem("lastConnectionDate", today);
-  
-  // Restaurar el modo business activo si existe
-  const savedBusinessMode = localStorage.getItem("activeBusinessMode");
-  if (savedBusinessMode && savedBusinessMode !== "exit") {
-    activeBusinessMode = savedBusinessMode;
-    const businessBtnEl = document.getElementById("businessBtn");
-    if (businessBtnEl) {
-      businessBtnEl.classList.add("business-active");
-    }
-
-    // Marcar el botón correcto como activo
-    document.querySelectorAll(".submenu-btn").forEach(btn => {
-      if (btn.dataset.mode === savedBusinessMode) {
-        btn.classList.add("active");
-      }
-    });
-
-    // Reenviar el modo al backend al reconectar/cargar
-    fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        userId: session.user.id,
-        mode: savedBusinessMode
-      })
-    }).catch(err => console.warn("Error re‑sync BusinessMode:", err));
-  }
 });
-
 
 function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -401,7 +424,7 @@ function formatTime(seconds) {
 
 /* ----------------------------------------------------------
    START SESSION
------------------------------------------------------------ */
+-------------------------------------------------- */
 const startSessionBtn = document.getElementById("startSessionBtn");
 
 startSessionBtn.onclick = async () => {
@@ -451,7 +474,7 @@ startSessionBtn.onclick = async () => {
 
 /* ----------------------------------------------------------
    BOTÓN HABLAR
------------------------------------------------------------ */
+-------------------------------------------------- */
 startBtn.onclick = async () => {
 
   if (!mediaStream) {
@@ -568,7 +591,7 @@ startBtn.onclick = async () => {
 
 /* ----------------------------------------------------------
    TTS BACKEND — WebAudio
------------------------------------------------------------ */
+-------------------------------------------------- */
 async function playBackendTTS(text, base64Audio) {
   try {
     if (!ttsContext) {
@@ -639,7 +662,7 @@ async function playBackendTTS(text, base64Audio) {
 
 /* ----------------------------------------------------------
    BOTÓN REPETIR 🔁
------------------------------------------------------------ */
+-------------------------------------------------- */
 document.getElementById("repeatBtn").onclick = () => {
   if (lastBotAudio) {
     playBackendTTS(lastBotText, lastBotAudio);
@@ -647,7 +670,7 @@ document.getElementById("repeatBtn").onclick = () => {
 };
 /* ----------------------------------------------------------
    ⭐ BUSINESS ENGLISH MENU
------------------------------------------------------------ */
+-------------------------------------------------- */
 const businessBtn = document.getElementById("businessBtn");
 const businessMenu = document.getElementById("businessMenu");
 
@@ -744,14 +767,7 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
       }
 
     } else {
-      activeBusinessMode = null;
-      businessBtn.classList.remove("business-active");
-      // Quitar active de todos los botones
-      document.querySelectorAll(".submenu-btn").forEach(b => {
-        b.classList.remove("active");
-      });
-      // Limpiar localStorage
-      localStorage.removeItem("activeBusinessMode");
+      deactivateBusinessMode();
       showToast("Business English deactivated");
     }
 
@@ -775,7 +791,6 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
     toast.classList.remove("show");
   }, 2500);
 }
-
 
 </script>
 
