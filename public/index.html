@@ -721,57 +721,54 @@ document.getElementById("repeatBtn").onclick = () => {
 };
 
 /* ----------------------------------------------------------
-   ⭐ BUSINESS ENGLISH MENU
+   ⭐ BUSINESS ENGLISH MENU (CORREGIDO)
 -------------------------------------------------- */
-const businessBtn = document.getElementById("businessBtn");
-const businessMenu = document.getElementById("businessMenu");
+document.addEventListener("DOMContentLoaded", () => {
 
-businessBtn.addEventListener("click", () => {
-  if (businessMenu.style.display === "" || businessMenu.style.display === "none") {
-    businessMenu.style.display = "block";
-  } else {
-    businessMenu.style.display = "none";
-  }
-});
+  const businessBtn = document.getElementById("businessBtn");
+  const businessMenu = document.getElementById("businessMenu");
 
+  businessBtn.addEventListener("click", () => {
+    if (businessMenu.style.display === "" || businessMenu.style.display === "none") {
+      businessMenu.style.display = "block";
+    } else {
+      businessMenu.style.display = "none";
+    }
+  });
 
-document.querySelectorAll(".submenu-btn").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const mode = btn.dataset.mode;
+  document.querySelectorAll(".submenu-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const mode = btn.dataset.mode;
 
-    await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ 
-        userId: session.user.id,
-        mode
-      })
-    });
-
-    if (mode !== "exit") {
-      activeBusinessMode = mode;
-      businessBtn.classList.add("business-active");
-      
-      document.querySelectorAll(".submenu-btn").forEach(b => {
-        b.classList.remove("active");
+      await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          userId: session.user.id,
+          mode
+        })
       });
-      btn.classList.add("active");
-      
-      localStorage.setItem("activeBusinessMode", mode);
 
-      setTimeout(() => {
-        showToast("Business English: " + mode.replace("_", " ") + " activated");
-      }, 150);
+      if (mode !== "exit") {
+        activeBusinessMode = mode;
+        businessBtn.classList.add("business-active");
 
-      localStorage.removeItem(getHistoryKey());
-      userText.textContent = "";
-      botText.textContent = "";
+        document.querySelectorAll(".submenu-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
 
-      /* ⭐ AUTO‑INICIO DE ENTREVISTA CON VELOCIDAD */
-      try {
+        localStorage.setItem("activeBusinessMode", mode);
+
+        setTimeout(() => {
+          showToast("Business English: " + mode.replace("_", " ") + " activated");
+        }, 150);
+
+        localStorage.removeItem(getHistoryKey());
+        userText.textContent = "";
+        botText.textContent = "";
+
         const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
           method: "POST",
           headers: {
@@ -782,11 +779,9 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
             message: "__start_interview__",
             history: [],
             userId: window.profile?.id || session.user.id,
-            firstname: window.profile?.firstname || session.user.user_metadata.first_name,
-            lastname: window.profile?.lastname || session.user.user_metadata.last_name,
-            email: window.profile?.email || session.user.email,
-
-            /* ⭐ VELOCIDAD */
+            firstname: window.profile?.firstname,
+            lastname: window.profile?.lastname,
+            email: window.profile?.email,
             speed: Number(currentSpeed)
           })
         });
@@ -812,17 +807,15 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
           playBackendTTS(response, data.audio);
         }
 
-      } catch (err) {
-        console.error("Error en auto‑inicio Business:", err);
+      } else {
+        deactivateBusinessMode();
+        showToast("Business English deactivated");
       }
 
-    } else {
-      deactivateBusinessMode();
-      showToast("Business English deactivated");
-    }
-
-    businessMenu.style.display = "none";
+      businessMenu.style.display = "none";
+    });
   });
+
 });
 
 /* ----------------------------------------------------------
