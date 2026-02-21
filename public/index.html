@@ -727,9 +727,13 @@ const businessBtn = document.getElementById("businessBtn");
 const businessMenu = document.getElementById("businessMenu");
 
 businessBtn.addEventListener("click", () => {
-  businessMenu.style.display =
-    businessMenu.style.display === "none" ? "block" : "none";
+  if (businessMenu.style.display === "" || businessMenu.style.display === "none") {
+    businessMenu.style.display = "block";
+  } else {
+    businessMenu.style.display = "none";
+  }
 });
+
 
 document.querySelectorAll(".submenu-btn").forEach(btn => {
   btn.addEventListener("click", async () => {
