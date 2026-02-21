@@ -64,6 +64,7 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 15px;
+      position: relative;
     }
 
     #startBtn {
@@ -94,7 +95,6 @@
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
-    /* ⭐ Botón secundario Business */
     .secondary-btn {
       padding: 10px 14px;
       font-size: 16px;
@@ -108,7 +108,6 @@
       background-color: #444;
     }
 
-    /* ⭐ Submenú Business */
     #businessMenu button.submenu-btn {
       width: 100%;
       padding: 10px;
@@ -123,8 +122,7 @@
     #businessMenu button.submenu-btn:hover {
       opacity: 0.85;
     }
-    
-    /* ⭐ Botón submenu ACTIVO */
+
     #businessMenu button.submenu-btn.active {
       background: linear-gradient(135deg, #ffcc33, #ff9900);
       color: #000 !important;
@@ -132,35 +130,67 @@
       font-weight: bold;
       transform: scale(1.05);
     }
-    
-   #toast {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.85);
-  color: #fff;
-  padding: 12px 18px;
-  border-radius: 8px;
-  font-size: 16px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-  z-index: 9999;
-}
-#toast.show {
-  opacity: 1;
-}
 
-.business-active {
-  background: linear-gradient(135deg, #ffcc33, #ff9900);
-  color: #000 !important;
-  box-shadow: 0 0 12px rgba(255, 170, 0, 0.9);
-  font-weight: bold;
-  transform: scale(1.05);
-  transition: all 0.2s ease;
-}
+    #toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 9999;
+    }
+    #toast.show {
+      opacity: 1;
+    }
 
+    .business-active {
+      background: linear-gradient(135deg, #ffcc33, #ff9900);
+      color: #000 !important;
+      box-shadow: 0 0 12px rgba(255, 170, 0, 0.9);
+      font-weight: bold;
+      transform: scale(1.05);
+      transition: all 0.2s ease;
+    }
+
+    /* ⭐ SELECTOR DE VELOCIDAD */
+    #speedBtn {
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+    }
+
+    #speedMenu {
+      position: absolute;
+      top: 60px;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 6px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 9999;
+    }
+
+    #speedMenu div {
+      padding: 6px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+    }
+
+    #speedMenu div:hover {
+      background: #eee;
+    }
   </style>
 </head>
 
@@ -178,7 +208,6 @@ const supabaseClient = window.supabase.createClient(
 let session = null;
 window.profile = null;
 
-// Obtener sesión
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   session = data.session;
@@ -202,21 +231,17 @@ window.profile = null;
       <button id="startBtn" disabled>🎤</button>
       <button id="repeatBtn">🔁</button>
 
-      <!-- ⭐ BOTÓN BUSINESS ENGLISH SECUNDARIO -->
       <button id="businessBtn" class="secondary-btn">💼 Business</button>
-    </div>
 
-    <!-- ⭐ SUBMENÚ BUSINESS ENGLISH -->
-    <div id="businessMenu" style="display:none; margin-top:10px;">
-      <button class="submenu-btn" data-mode="negotiation">🤝 Negotiation</button>
-      <button class="submenu-btn" data-mode="job_interview">🧑‍💼 Job Interview</button>
-      <button class="submenu-btn" data-mode="client_meeting">📊 Client Meeting</button>
-      <button class="submenu-btn" data-mode="presentation">🎤 Presentation</button>
-      <button class="submenu-btn" data-mode="conflict_resolution">⚠️ Conflict Resolution</button>
-      <button class="submenu-btn" data-mode="sales_call">📞 Sales Call</button>
-      <button class="submenu-btn" data-mode="exit" style="background-color:#b30000;">
-        ❌ Exit Business Mode
-      </button>
+      <!-- ⭐ BOTÓN DE VELOCIDAD -->
+      <button id="speedBtn">🎚️</button>
+
+      <!-- ⭐ MENÚ DE VELOCIDAD -->
+      <div id="speedMenu">
+        <div data-speed="0.85">🐢 Lento</div>
+        <div data-speed="1.0">⚖️ Normal</div>
+        <div data-speed="1.2">⚡ Rápido</div>
+      </div>
     </div>
 
     <p><strong>Tú:</strong> <span id="userText"></span></p>
@@ -300,6 +325,36 @@ function loadLastMessage() {
     botText.textContent = h[h.length - 1].bot;
   }
 }
+</script>
+<script>
+/* ----------------------------------------------------------
+   ⭐ SELECTOR DE VELOCIDAD
+----------------------------------------------------------- */
+let currentSpeed = Number(localStorage.getItem("voiceSpeed") || 1.0);
+
+const speedBtn = document.getElementById("speedBtn");
+const speedMenu = document.getElementById("speedMenu");
+
+if (speedBtn && speedMenu) {
+  speedBtn.addEventListener("click", () => {
+    speedMenu.style.display = speedMenu.style.display === "flex" ? "none" : "flex";
+  });
+
+  speedMenu.querySelectorAll("div").forEach(item => {
+    item.addEventListener("click", () => {
+      const selected = Number(item.getAttribute("data-speed"));
+      currentSpeed = selected;
+      localStorage.setItem("voiceSpeed", selected);
+      speedMenu.style.display = "none";
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!speedBtn.contains(e.target) && !speedMenu.contains(e.target)) {
+      speedMenu.style.display = "none";
+    }
+  });
+}
 
 /* ----------------------------------------------------------
    ⭐ CARGAR DATOS DEL USUARIO DESDE BACKEND (/userinfo)
@@ -361,12 +416,10 @@ window.addEventListener("load", async () => {
   let greeting = "";
 
   if (lastDate === today) {
-    // No es el primer acceso del día, cargar último mensaje y restaurar Business Mode
     loadLastMessage();
     isFirstInteractionOfDay = false;
     greeting = "";
 
-    // Restaurar el modo business activo si existe
     const savedBusinessMode = localStorage.getItem("activeBusinessMode");
     if (savedBusinessMode && savedBusinessMode !== "exit") {
       activeBusinessMode = savedBusinessMode;
@@ -375,14 +428,12 @@ window.addEventListener("load", async () => {
         businessBtnEl.classList.add("business-active");
       }
 
-      // Marcar el botón correcto como activo
       document.querySelectorAll(".submenu-btn").forEach(btn => {
         if (btn.dataset.mode === savedBusinessMode) {
           btn.classList.add("active");
         }
       });
 
-      // Reenviar el modo al backend al reconectar/cargar
       fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
         method: "POST",
         headers: {
@@ -397,7 +448,6 @@ window.addEventListener("load", async () => {
     }
 
   } else {
-    // Es el primer acceso del día
     isFirstInteractionOfDay = true;
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", {
@@ -409,7 +459,6 @@ window.addEventListener("load", async () => {
     botText.textContent = greeting;
     saveHistory("", greeting);
 
-    // 🧹 Desactivar Business Mode al inicio del día
     deactivateBusinessMode();
   }
 
@@ -520,7 +569,10 @@ startBtn.onclick = async () => {
         userId: window.profile?.id || session.user.id,      
         firstname: window.profile.firstname,
         lastname: window.profile.lastname,
-        email: window.profile.email
+        email: window.profile.email,
+
+        /* ⭐ VELOCIDAD ENVIADA AL BACKEND */
+        speed: Number(currentSpeed)
       })
     });
 
@@ -535,7 +587,6 @@ startBtn.onclick = async () => {
     const limit = data.dailyLimit || window.profile.daily_limit_seconds || 300;
     const remaining = Math.max(limit - (data.timeSpentToday || 0), 0);
 
-   /*  const remaining = Math.max(300 - (data.timeSpentToday || 0), 0); */
     timeSpent.textContent = formatTime(remaining);
     timeRow.style.display = "block";
 
@@ -588,7 +639,8 @@ startBtn.onclick = async () => {
   userText.textContent = "(Escuchando...)";
   checkSilence();
 };
-
+</script>
+<script>
 /* ----------------------------------------------------------
    TTS BACKEND — WebAudio
 -------------------------------------------------- */
@@ -637,7 +689,6 @@ async function playBackendTTS(text, base64Audio) {
       })
       .then(r => r.json())
       .then(d => {
-        /* const remaining = Math.max(300 - d.total, 0); */
         const limit = window.profile.daily_limit_seconds || 300;
         const remaining = Math.max(limit - d.total, 0);
 
@@ -668,6 +719,7 @@ document.getElementById("repeatBtn").onclick = () => {
     playBackendTTS(lastBotText, lastBotAudio);
   }
 };
+
 /* ----------------------------------------------------------
    ⭐ BUSINESS ENGLISH MENU
 -------------------------------------------------- */
@@ -699,26 +751,22 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
       activeBusinessMode = mode;
       businessBtn.classList.add("business-active");
       
-      // Quitar la clase active de todos los botones
       document.querySelectorAll(".submenu-btn").forEach(b => {
         b.classList.remove("active");
       });
-      // Añadir la clase active al botón seleccionado
       btn.classList.add("active");
       
-      // Guardar el modo en localStorage
       localStorage.setItem("activeBusinessMode", mode);
 
       setTimeout(() => {
         showToast("Business English: " + mode.replace("_", " ") + " activated");
       }, 150);
 
-      // 🧹 borrar historial local del día
       localStorage.removeItem(getHistoryKey());
       userText.textContent = "";
       botText.textContent = "";
 
-      // ⭐ AUTO‑INICIO DE ENTREVISTA
+      /* ⭐ AUTO‑INICIO DE ENTREVISTA CON VELOCIDAD */
       try {
         const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
           method: "POST",
@@ -727,29 +775,28 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
             "Authorization": `Bearer ${session.access_token}`
           },
           body: JSON.stringify({
-            message: "__start_interview__",   // trigger especial
+            message: "__start_interview__",
             history: [],
             userId: window.profile?.id || session.user.id,
             firstname: window.profile?.firstname || session.user.user_metadata.first_name,
             lastname: window.profile?.lastname || session.user.user_metadata.last_name,
-            email: window.profile?.email || session.user.email
+            email: window.profile?.email || session.user.email,
+
+            /* ⭐ VELOCIDAD */
+            speed: Number(currentSpeed)
           })
         });
 
         const data = await chatRes.json();
         const response = data.reply || "Error";
 
-        // mostrar mensaje inicial de la entrevista
         botText.textContent = response;
         saveHistory("", response);
 
-        // preparar repetición
         lastBotText = response;
         lastBotAudio = data.audio;
 
-        // actualizar tiempo restante si viene
         if (typeof data.timeSpentToday === "number") {
-          /* const remaining = Math.max(300 - data.timeSpentToday, 0); */
           const limit = data.dailyLimit || window.profile.daily_limit_seconds || 300;
           const remaining = Math.max(limit - data.timeSpentToday, 0);
 
@@ -757,7 +804,6 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
           timeRow.style.display = "block";
         }
 
-        // reproducir TTS inicial
         if (data.audio) {
           playBackendTTS(response, data.audio);
         }
@@ -775,25 +821,24 @@ document.querySelectorAll(".submenu-btn").forEach(btn => {
   });
 });
 
-  function showToast(message) {
+/* ----------------------------------------------------------
+   TOAST
+-------------------------------------------------- */
+function showToast(message) {
   const toast = document.getElementById("toast");
   toast.textContent = message;
 
-  // Reiniciar estado para permitir animación repetida
   toast.classList.remove("show");
-
-  // Forzar repintado antes de añadir la clase
   void toast.offsetWidth;
-
   toast.classList.add("show");
 
   setTimeout(() => {
     toast.classList.remove("show");
   }, 2500);
 }
-
 </script>
 
+<!-- SERVICE WORKER -->
 <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
