@@ -107,18 +107,26 @@
     .secondary-btn:hover {
       background-color: #444;
     }
+#businessMenu {
+  display: none;          /* ya lo controlamos por JS */
+  margin-top: 10px;
+  width: 100%;
+  text-align: center;     /* centra el contenido dentro */
+}
 
     #businessMenu button.submenu-btn {
-      width: 100%;
-      padding: 10px;
-      margin-top: 6px;
-      font-size: 16px;
-      background-color: #222;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
+  display: block;
+  width: 80%;             /* más estrechos, quedan centrados */
+  margin: 6px auto;       /* centrado horizontal */
+  padding: 8px 10px;      /* un pelín más compactos */
+  font-size: 14px;        /* letra un poco más pequeña */
+  background-color: #222;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
     #businessMenu button.submenu-btn:hover {
       opacity: 0.85;
     }
