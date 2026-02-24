@@ -199,6 +199,15 @@
     #speedMenu div:hover {
       background: #eee;
     }
+    /* ⭐ Highlight del botón de velocidad activo */
+#speedMenu div.active {
+  background: linear-gradient(135deg, #ffcc33, #ff9900);
+  color: #000 !important;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
+  transform: scale(1.05);
+}
+
   </style>
 </head>
 
@@ -350,6 +359,15 @@ function loadLastMessage() {
    ⭐ SELECTOR DE VELOCIDAD
 ----------------------------------------------------------- */
 let currentSpeed = Number(localStorage.getItem("voiceSpeed") || 1.0);
+document.addEventListener("DOMContentLoaded", () => {
+  const savedSpeed = String(currentSpeed);
+
+  speedMenu.querySelectorAll("div").forEach(item => {
+    if (item.getAttribute("data-speed") === savedSpeed) {
+      item.classList.add("active");
+    }
+  });
+});
 
 const speedBtn = document.getElementById("speedBtn");
 const speedMenu = document.getElementById("speedMenu");
@@ -359,14 +377,25 @@ if (speedBtn && speedMenu) {
     speedMenu.style.display = speedMenu.style.display === "flex" ? "none" : "flex";
   });
 
-  speedMenu.querySelectorAll("div").forEach(item => {
-    item.addEventListener("click", () => {
-      const selected = Number(item.getAttribute("data-speed"));
-      currentSpeed = selected;
-      localStorage.setItem("voiceSpeed", selected);
-      speedMenu.style.display = "none";
-    });
+ speedMenu.querySelectorAll("div").forEach(item => {
+  item.addEventListener("click", () => {
+
+    // Quitar highlight de todos
+    speedMenu.querySelectorAll("div").forEach(d => d.classList.remove("active"));
+
+    // Activar el seleccionado
+    item.classList.add("active");
+
+    // Guardar velocidad
+    const selected = Number(item.getAttribute("data-speed"));
+    currentSpeed = selected;
+    localStorage.setItem("voiceSpeed", selected);
+
+    // Cerrar menú
+    speedMenu.style.display = "none";
   });
+});
+
 
   document.addEventListener("click", (e) => {
     if (!speedBtn.contains(e.target) && !speedMenu.contains(e.target)) {
