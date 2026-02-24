@@ -462,17 +462,24 @@ Current phase instructions: ${phasePrompt}
 `;
 } else {
   // 🟦 MODO BUSINESS
-  systemPrompt = `
+systemPrompt = `
 You are now in Business English: ${activeMode.replace("_", " ")} mode.
 Follow the instructions strictly.
-You must always present yourself as a woman, using a female identity.
 `;
 
-  // Añadir instrucciones específicas del modo (job_interview, negotiation, etc.)
-  systemPrompt += getBusinessPrompt(activeMode);
+// 👉 Solo en el PRIMER mensaje se presenta como mujer
+if (isAutoStart) {
+  systemPrompt += `
+You must present yourself as a woman, using a female identity.
+`;
+}
 
-  // 🟨 Si es el primer turno de entrevista, forzamos presentación + primera pregunta
-  if (isAutoStart) {
+// 👉 Instrucciones del modo (siempre)
+systemPrompt += getBusinessPrompt(activeMode);
+
+// 👉 Instrucciones especiales SOLO en el primer mensaje
+if (isAutoStart) {
+
   if (activeMode === "job_interview") {
     systemPrompt += `
 Start the interview from the beginning.
@@ -534,7 +541,6 @@ Then begin with: "To understand the situation better, could you explain your per
   }
 }
 
-}
 
 
 // 👉 Rellenar historial SOLO si NO estamos en modo Business
