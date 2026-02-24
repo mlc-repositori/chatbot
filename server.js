@@ -540,7 +540,7 @@ Then begin with: "To understand the situation better, could you explain your per
 `;
   }
 }
-
+}
 
 
 // 👉 Rellenar historial SOLO si NO estamos en modo Business
