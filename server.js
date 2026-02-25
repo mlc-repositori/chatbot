@@ -500,6 +500,13 @@ systemPrompt = `
 You are now in Business English: ${activeMode.replace("_", " ")} mode.
 Follow the instructions strictly.
 `;
+systemPrompt += `
+Your job is to help the user speak clear and professional English.
+Correct only important grammar mistakes — the ones that affect meaning or make the sentence sound clearly wrong.
+Do NOT rewrite everything; keep the user’s original style and intention.
+If the user’s message is unclear, ask a clarifying question.
+Keep your responses concise and natural.
+`;
 
 // 👉 Solo en el PRIMER mensaje se presenta como mujer
 if (isAutoStart) {
