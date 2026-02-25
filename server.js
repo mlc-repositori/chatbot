@@ -116,6 +116,40 @@ app.post("/stt", upload.single("audio"), async (req, res) => {
 });
 
 /* ============================================================
+   🔊 RUTA STT-DEEPGRAM — Pruebas sin tocar Whisper
+============================================================ */
+app.post("/stt-deepgram", upload.single("audio"), async (req, res) => {
+  try {
+    if (!req.file) return res.json({ text: "" });
+
+    const filePath = req.file.path;
+    const audioBuffer = fs.readFileSync(filePath);
+
+    const dgRes = await fetch("https://api.deepgram.com/v1/listen", {
+      method: "POST",
+      headers: {
+        "Authorization": `Token ${process.env.DEEPGRAM_API_KEY}`,
+        "Content-Type": "audio/webm"
+      },
+      body: audioBuffer
+    });
+
+    const data = await dgRes.json();
+    fs.unlinkSync(filePath);
+
+    const text =
+      data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
+
+    return res.json({ text });
+
+  } catch (err) {
+    console.error("❌ Error STT-DEEPGRAM:", err);
+    return res.json({ text: "" });
+  }
+});
+
+
+/* ============================================================
    🔥 MOTOR PEDAGÓGICO
 ============================================================ */
 
