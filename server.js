@@ -326,7 +326,7 @@ Evaluate answers and give short feedback.
 Use formal tone and professional vocabulary.
 `;
 
-    case "sales":
+    case "sales_call":
       return `
 You are now in Business English: Sales Call mode.
 Act as a potential client or prospect.
