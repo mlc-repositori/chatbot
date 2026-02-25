@@ -125,7 +125,7 @@ app.post("/stt-deepgram", upload.single("audio"), async (req, res) => {
     const filePath = req.file.path;
     const audioBuffer = fs.readFileSync(filePath);
 
-    const dgRes = await fetch("https://api.deepgram.com/v1/listen", {
+    const dgRes = await fetch("https://api.deepgram.com/v1/listen?punctuate=true", {
       method: "POST",
       headers: {
         "Authorization": `Token ${process.env.DEEPGRAM_API_KEY}`,
