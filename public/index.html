@@ -590,7 +590,9 @@ startBtn.onclick = async () => {
     const formData = new FormData();
     formData.append("audio", audioBlob, "audio.webm");
 
-    const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt", {
+    /* const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt", { */
+    const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt-deepgram", {
+
       method: "POST",
       headers: {
         "Authorization": `Bearer ${session.access_token}`
