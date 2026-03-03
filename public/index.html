@@ -578,21 +578,36 @@ startBtn.onclick = async () => {
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   }
 
+  // Cerrar AudioContext anterior si existe
+  if (audioContext && audioContext.state !== "closed") {
+    await audioContext.close();
+  }
+
+  audioContext = new AudioContext();
+  const source = audioContext.createMediaStreamSource(mediaStream);
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048;
+  source.connect(analyser);
+
   mediaRecorder = new MediaRecorder(mediaStream);
   audioChunks = [];
 
   mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
 
   mediaRecorder.onstop = async () => {
+
+    // Cerrar el AudioContext para evitar acumulación
+    if (audioContext && audioContext.state !== "closed") {
+      audioContext.close();
+    }
+
     userText.textContent = "";
 
     const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
     const formData = new FormData();
     formData.append("audio", audioBlob, "audio.webm");
 
-    /* const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt", { */
     const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt-deepgram", {
-
       method: "POST",
       headers: {
         "Authorization": `Bearer ${session.access_token}`
@@ -616,12 +631,10 @@ startBtn.onclick = async () => {
       body: JSON.stringify({
         message: transcript,
         history: last3,
-        userId: window.profile?.id || session.user.id,      
+        userId: window.profile?.id || session.user.id,
         firstname: window.profile.firstname,
         lastname: window.profile.lastname,
         email: window.profile.email,
-
-        /* ⭐ VELOCIDAD ENVIADA AL BACKEND */
         speed: Number(currentSpeed)
       })
     });
@@ -634,6 +647,7 @@ startBtn.onclick = async () => {
 
     lastBotText = response;
     lastBotAudio = data.audio;
+
     const limit = data.dailyLimit || window.profile.daily_limit_seconds || 300;
     const remaining = Math.max(limit - (data.timeSpentToday || 0), 0);
 
@@ -643,18 +657,15 @@ startBtn.onclick = async () => {
     playBackendTTS(response, data.audio);
   };
 
-  audioContext = new AudioContext();
-  const source = audioContext.createMediaStreamSource(mediaStream);
-  const analyser = audioContext.createAnalyser();
-  analyser.fftSize = 2048;
-  source.connect(analyser);
+  // Detector de silencio mejorado
+  const BASE_THRESHOLD = 0.02;
+  let dynamicThreshold = BASE_THRESHOLD;
 
-  const SILENCE_THRESHOLD = 0.04;
   const SILENCE_DURATION = 2500;
-
+  const MIN_RECORDING_TIME = 1200;
   const MAX_RECORDING_TIME = 15000;
-  const recordingStart = Date.now();
 
+  const recordingStart = Date.now();
   let silenceStart = Date.now();
 
   function checkSilence() {
@@ -668,12 +679,24 @@ startBtn.onclick = async () => {
     }
     const rms = Math.sqrt(sum / data.length);
 
-    if (Date.now() - recordingStart > MAX_RECORDING_TIME) {
+    // Threshold adaptativo
+    if (rms > dynamicThreshold) {
+      dynamicThreshold = rms * 0.7;
+    }
+
+    const elapsed = Date.now() - recordingStart;
+
+    if (elapsed < MIN_RECORDING_TIME) {
+      requestAnimationFrame(checkSilence);
+      return;
+    }
+
+    if (elapsed > MAX_RECORDING_TIME) {
       mediaRecorder.stop();
       return;
     }
 
-    if (rms < SILENCE_THRESHOLD) {
+    if (rms < dynamicThreshold) {
       if (Date.now() - silenceStart > SILENCE_DURATION) {
         mediaRecorder.stop();
         return;
