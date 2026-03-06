@@ -87,7 +87,7 @@
     <p id="errorMsg"></p>
 
     <div class="forgot">
-      <a id="forgot">¿Olvidaste tu contraseña?</a>
+      <a id="forgot">¿Resetear tu contraseña?</a>
     </div>
   </div>
 
@@ -121,7 +121,7 @@
 
     // RESET PASSWORD
     document.getElementById("forgot").addEventListener("click", async () => {
-      const email = prompt("Introduce tu email para recuperar la contraseña:");
+      const email = prompt("Introduce tu email para recuperar/resetear la contraseña:");
       if (!email) return;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
