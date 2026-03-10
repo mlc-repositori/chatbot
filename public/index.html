@@ -813,17 +813,32 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", async () => {
       const mode = btn.dataset.mode;
 
-      await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ 
-          userId: session.user.id,
-          mode
-        })
-      });
+      const modeRes = await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`
+  },
+  body: JSON.stringify({ 
+    userId: session.user.id,
+    mode
+  })
+});
+
+const modeData = await modeRes.json();
+
+// ⭐ SI EL BACKEND DICE QUE SE HA SALIDO DEL MODO BUSINESS
+if (modeData.exitedBusiness) {
+  deactivateBusinessMode();
+  showToast("Business English deactivated");
+
+  // ⭐ ENVIAR MENSAJE ESPECIAL A /chat
+  sendChatMessage("__business_exit_greeting__");
+
+  businessMenu.style.display = "none";
+  return; // 🔥 IMPORTANTE: no seguir con el flujo normal
+}
+
 
       if (mode !== "exit") {
         activeBusinessMode = mode;
