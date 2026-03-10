@@ -348,12 +348,24 @@ app.post("/setBusinessMode", (req, res) => {
   }
 
   if (mode === "exit") {
-    businessModes[userId] = null;
-  } else {
-    businessModes[userId] = mode;
-  }
-  console.log("💾 businessModes ahora:", businessModes);
-  return res.json({ ok: true, activeMode: businessModes[userId] });
+  businessModes[userId] = null;
+
+  // 🔥 Indicamos al frontend que se ha salido del modo Business
+  return res.json({
+    ok: true,
+    activeMode: null,
+    exitedBusiness: true
+  });
+}
+
+// Si no es exit, se activa un modo Business normal
+businessModes[userId] = mode;
+
+return res.json({
+  ok: true,
+  activeMode: businessModes[userId]
+});
+
 });
 
 /* ============================================================
