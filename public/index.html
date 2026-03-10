@@ -832,12 +832,41 @@ if (modeData.exitedBusiness) {
   deactivateBusinessMode();
   showToast("Business English deactivated");
 
-  // ⭐ ENVIAR MENSAJE ESPECIAL A /chat
-  sendChatMessage("__business_exit_greeting__");
+  // ⭐ LLAMADA DIRECTA A /chat PARA EL SALUDO ESPECIAL
+  const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({
+      message: "__business_exit_greeting__",
+      history: [],
+      userId: window.profile?.id || session.user.id,
+      firstname: window.profile?.firstname,
+      lastname: window.profile?.lastname,
+      email: window.profile?.email,
+      speed: Number(currentSpeed)
+    })
+  });
+
+  const data = await chatRes.json();
+  const response = data.reply || "Error";
+
+  botText.textContent = response;
+  saveHistory("", response);
+
+  lastBotText = response;
+  lastBotAudio = data.audio;
+
+  if (data.audio) {
+    playBackendTTS(response, data.audio);
+  }
 
   businessMenu.style.display = "none";
-  return; // 🔥 IMPORTANTE: no seguir con el flujo normal
+  return;
 }
+
 
 
       if (mode !== "exit") {
