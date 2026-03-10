@@ -410,7 +410,7 @@ How would you like to continue today?
   return res.json({
     reply: farewell,
     audio: audioBase64,
-    timeSpentToday: used
+    
   });
 }
 
