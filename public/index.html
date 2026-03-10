@@ -507,6 +507,8 @@ window.addEventListener("load", async () => {
 
   } else {
     isFirstInteractionOfDay = true;
+    localStorage.removeItem("voiceSpeed");
+
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-US", {
       weekday: "long", year: "numeric", month: "long", day: "numeric"
