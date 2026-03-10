@@ -360,14 +360,24 @@ function loadLastMessage() {
 ----------------------------------------------------------- */
 let currentSpeed = Number(localStorage.getItem("voiceSpeed") || 1.0);
 document.addEventListener("DOMContentLoaded", () => {
-  const savedSpeed = String(currentSpeed);
+  // Si no existe velocidad guardada → fijar normal (1.0)
+  if (!localStorage.getItem("voiceSpeed")) {
+    localStorage.setItem("voiceSpeed", "1.0");
+    currentSpeed = 1.0;
+  }
 
+  const savedSpeed = String(localStorage.getItem("voiceSpeed"));
+
+  // Marcar visualmente la velocidad activa
   speedMenu.querySelectorAll("div").forEach(item => {
     if (item.getAttribute("data-speed") === savedSpeed) {
       item.classList.add("active");
+    } else {
+      item.classList.remove("active");
     }
   });
 });
+
 
 const speedBtn = document.getElementById("speedBtn");
 const speedMenu = document.getElementById("speedMenu");
