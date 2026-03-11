@@ -221,8 +221,20 @@ function getPromptForPhase(sessionKey, userMessage) {
   }
 
   if (phase === "warmup") {
-    return script.prompts?.warmup || "Ask a simple warm-up question.";
+  const warmupExamples = script.phases?.warmup?.examples || [];
+  let variation = "";
+
+  // Si hay variaciones, elegir una aleatoria
+  if (warmupExamples.length > 0) {
+    variation = warmupExamples[Math.floor(Math.random() * warmupExamples.length)];
   }
+
+  const base = script.prompts?.warmup || "Ask a simple warm-up question.";
+
+  // Combinar prompt + variación
+  return `${base} Use this idea: "${variation}"`;
+}
+
 
   if (phase === "topic_intro") {
     const topic = script.topics[topicKey];
