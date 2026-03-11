@@ -237,7 +237,18 @@ function getPromptForPhase(sessionKey, userMessage) {
     const questions = sub?.questions || [];
     const idx = session.questionIndex || 0;
     const qObj = questions[idx] || questions[0];
-    const qText = qObj?.q || "Ask an open-ended question.";
+
+// Elegir pregunta principal
+let qText = qObj?.q || "Ask an open-ended question.";
+
+// Si hay alternativas, usar una aleatoria el 30% de las veces
+if (qObj.alt && qObj.alt.length > 0) {
+  const useAlt = Math.random() < 0.3; // 30%
+  if (useAlt) {
+    qText = qObj.alt[Math.floor(Math.random() * qObj.alt.length)];
+  }
+}
+
 
     const base = script.prompts?.guided_question || "Ask an open-ended question.";
     return `${base} Use this idea: "${qText}"`;
