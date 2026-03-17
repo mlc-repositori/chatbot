@@ -981,14 +981,22 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     const inactiveTime = Date.now() - lastActive;
 
-    // Si estuvo fuera más de 60 segundos → recargar
+    // Si estuvo fuera más de 15 minutos → volver al login
+    if (inactiveTime > 15 * 60 * 1000) {
+      console.log("⏳ Más de 15 minutos fuera → volviendo al login...");
+      window.location.href = "login.html";
+      return;
+    }
+
+    // Si estuvo fuera más de 60 segundos → recargar la página
     if (inactiveTime > 60000) {
-      console.log("⏳ Inactividad prolongada detectada → recargando...");
+      console.log("⏳ Inactividad prolongada → recargando...");
       location.reload();
     }
   }
 });
 </script>
+
 
 </body>
 </html>
