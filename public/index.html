@@ -970,6 +970,25 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
+<script>
+let lastActive = Date.now();
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    lastActive = Date.now();
+  }
+
+  if (document.visibilityState === "visible") {
+    const inactiveTime = Date.now() - lastActive;
+
+    // Si estuvo fuera más de 60 segundos → recargar
+    if (inactiveTime > 60000) {
+      console.log("⏳ Inactividad prolongada detectada → recargando...");
+      location.reload();
+    }
+  }
+});
+</script>
 
 </body>
 </html>
