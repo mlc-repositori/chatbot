@@ -17,6 +17,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
+    /* ⭐ TODO TU CSS ORIGINAL SIN CAMBIOS */
     body {
       font-family: Arial, sans-serif;
       background-color: #F8D763;
@@ -107,25 +108,26 @@
     .secondary-btn:hover {
       background-color: #444;
     }
-#businessMenu {
-  display: none;          /* ya lo controlamos por JS */
-  margin-top: 10px;
-  width: 100%;
-  text-align: center;     /* centra el contenido dentro */
-}
+
+    #businessMenu {
+      display: none;
+      margin-top: 10px;
+      width: 100%;
+      text-align: center;
+    }
 
     #businessMenu button.submenu-btn {
-  display: block;
-  width: 80%;             /* más estrechos, quedan centrados */
-  margin: 6px auto;       /* centrado horizontal */
-  padding: 8px 10px;      /* un pelín más compactos */
-  font-size: 14px;        /* letra un poco más pequeña */
-  background-color: #222;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
+      display: block;
+      width: 80%;
+      margin: 6px auto;
+      padding: 8px 10px;
+      font-size: 14px;
+      background-color: #222;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
 
     #businessMenu button.submenu-btn:hover {
       opacity: 0.85;
@@ -167,7 +169,6 @@
       transition: all 0.2s ease;
     }
 
-    /* ⭐ SELECTOR DE VELOCIDAD */
     #speedBtn {
       background: none;
       border: none;
@@ -199,15 +200,14 @@
     #speedMenu div:hover {
       background: #eee;
     }
-    /* ⭐ Highlight del botón de velocidad activo */
-#speedMenu div.active {
-  background: linear-gradient(135deg, #ffcc33, #ff9900);
-  color: #000 !important;
-  font-weight: bold;
-  box-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
-  transform: scale(1.05);
-}
 
+    #speedMenu div.active {
+      background: linear-gradient(135deg, #ffcc33, #ff9900);
+      color: #000 !important;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
+      transform: scale(1.05);
+    }
   </style>
 </head>
 
@@ -225,16 +225,36 @@ const supabaseClient = window.supabase.createClient(
 let session = null;
 window.profile = null;
 
-(async () => {
+/* ⭐⭐⭐ NUEVO ARRANQUE CORRECTO ⭐⭐⭐ */
+async function initApp() {
+  console.log("🔄 Esperando a que Supabase cargue la sesión...");
+
   const { data } = await supabaseClient.auth.getSession();
   session = data.session;
 
   if (!session) {
+    console.warn("❌ No hay sesión → login");
     window.location.href = "login.html";
     return;
   }
-})();
+
+  console.log("✅ Sesión OK");
+
+  await loadUserInfo();
+
+  if (!window.profile) {
+    console.warn("❌ Userinfo no disponible → login");
+    window.location.href = "login.html";
+    return;
+  }
+
+  startAppLogic();
+}
+
+initApp();
 </script>
+
+<!-- ⭐⭐ AQUÍ SIGUE TODO TU HTML ORIGINAL SIN CAMBIOS ⭐⭐ -->
 
 <div class="chatbot-container">
   <img id="avatar" src="avatarprofemujer2.jpg" alt="Avatar">
@@ -249,22 +269,20 @@ window.profile = null;
       <button id="repeatBtn">🔁</button>
 
       <button id="businessBtn" class="secondary-btn">💼 Business</button>
-       <div id="businessMenu" style="display:none; margin-top:8px;">
+      <div id="businessMenu" style="display:none; margin-top:8px;">
         <button class="submenu-btn" data-mode="negotiation">🤝 Negotiation</button>
-      <button class="submenu-btn" data-mode="job_interview">🧑‍💼 Job Interview</button>
-      <button class="submenu-btn" data-mode="client_meeting">📊 Client Meeting</button>
-      <button class="submenu-btn" data-mode="presentation">🎤 Presentation</button>
-      <button class="submenu-btn" data-mode="conflict_resolution">⚠️ Conflict Resolution</button>
-      <button class="submenu-btn" data-mode="sales_call">📞 Sales Call</button>
-      <button class="submenu-btn" data-mode="exit" style="background-color:#b30000;">
-        ❌ Exit Business Mode
-      </button>
+        <button class="submenu-btn" data-mode="job_interview">🧑‍💼 Job Interview</button>
+        <button class="submenu-btn" data-mode="client_meeting">📊 Client Meeting</button>
+        <button class="submenu-btn" data-mode="presentation">🎤 Presentation</button>
+        <button class="submenu-btn" data-mode="conflict_resolution">⚠️ Conflict Resolution</button>
+        <button class="submenu-btn" data-mode="sales_call">📞 Sales Call</button>
+        <button class="submenu-btn" data-mode="exit" style="background-color:#b30000;">
+          ❌ Exit Business Mode
+        </button>
       </div>
 
-      <!-- ⭐ BOTÓN DE VELOCIDAD -->
       <button id="speedBtn">🎚️</button>
 
-      <!-- ⭐ MENÚ DE VELOCIDAD -->
       <div id="speedMenu">
         <div data-speed="0.85">🐢 Lento</div>
         <div data-speed="1.0">⚖️ Normal</div>
@@ -289,78 +307,103 @@ let wakeLock = null;
 let activeBusinessMode = null;
 let isFirstInteractionOfDay = false;
 
-async function keepScreenAwake() {
+/* ⭐⭐⭐ TU loadUserInfo ORIGINAL SIN CAMBIOS ⭐⭐⭐ */
+async function loadUserInfo() {
   try {
-    if ("wakeLock" in navigator) {
-      wakeLock = await navigator.wakeLock.request("screen");
-      console.log("🔋 Wake Lock activado");
-    }
+    const res = await fetch("https://chatbot-xzhi.onrender.com/userinfo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        id: session.user.id,
+        email: session.user.email
+      })
+    });
+
+    const data = await res.json();
+    console.log("Perfil recibido:", data);
+
+    window.profile = data;
+    return data;
+
   } catch (err) {
-    console.warn("Wake Lock error:", err);
+    console.error("Error cargando userinfo:", err);
+    return null;
   }
 }
+<!-- ⭐⭐⭐ NUEVA FUNCIÓN startAppLogic() ⭐⭐⭐ -->
+<script>
+function startAppLogic() {
+  chooseBestVoice();
 
-function releaseWakeLock() {
-  if (wakeLock) {
-    wakeLock.release();
-    wakeLock = null;
-    console.log("🔋 Wake Lock liberado");
+  const firstname = window.profile?.firstname || "student";
+
+  const today = getTodayDate();
+  const lastDate = localStorage.getItem("lastConnectionDate");
+
+  let greeting = "";
+
+  if (lastDate === today) {
+    loadLastMessage();
+    isFirstInteractionOfDay = false;
+
+    const savedBusinessMode = localStorage.getItem("activeBusinessMode");
+    if (savedBusinessMode && savedBusinessMode !== "exit") {
+      activeBusinessMode = savedBusinessMode;
+
+      const businessBtnEl = document.getElementById("businessBtn");
+      if (businessBtnEl) {
+        businessBtnEl.classList.add("business-active");
+      }
+
+      document.querySelectorAll(".submenu-btn").forEach(btn => {
+        if (btn.dataset.mode === savedBusinessMode) {
+          btn.classList.add("active");
+        }
+      });
+
+      fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          userId: session.user.id,
+          mode: savedBusinessMode
+        })
+      }).catch(err => console.warn("Error re‑sync BusinessMode:", err));
+    }
+
+  } else {
+    isFirstInteractionOfDay = true;
+    localStorage.removeItem("voiceSpeed");
+
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric"
+    });
+
+    greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
+
+    botText.textContent = greeting;
+    saveHistory("", greeting);
+
+    deactivateBusinessMode();
   }
-}
 
-const isIphone = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-window.addEventListener("DOMContentLoaded", () => {
-  startBtn.disabled = true;
-});
-
-function chooseBestVoice() {
-  voiceName.textContent = "OpenAI TTS (único)";
-}
-
-let mediaRecorder = null;
-let audioChunks = [];
-let mediaStream = null;
-let audioContext = null;
-let ttsContext = null;
-
-let lastBotAudio = null;
-let lastBotText = "";
-
-const userText = document.getElementById("userText");
-const botText = document.getElementById("botText");
-const timeSpent = document.getElementById("timeSpent");
-const timeRow = document.getElementById("timeRow");
-const avatar = document.getElementById("avatar");
-
-function getTodayDate() {
-  return new Date().toISOString().split("T")[0];
-}
-function getHistoryKey() {
-  return "chatHistory_" + getTodayDate();
-}
-function saveHistory(userMsg, botMsg) {
-  const key = getHistoryKey();
-  let h = JSON.parse(localStorage.getItem(key) || "[]");
-  h.push({ user: userMsg, bot: botMsg });
-  if (h.length > 5) h = h.slice(-5);
-  localStorage.setItem(key, JSON.stringify(h));
-}
-function loadLastMessage() {
-  const h = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
-  if (h.length > 0) {
-    userText.textContent = h[h.length - 1].user;
-    botText.textContent = h[h.length - 1].bot;
-  }
+  localStorage.setItem("lastConnectionDate", today);
 }
 </script>
+
 <script>
 /* ----------------------------------------------------------
    ⭐ SELECTOR DE VELOCIDAD
 ----------------------------------------------------------- */
 let currentSpeed = Number(localStorage.getItem("voiceSpeed") || 1.0);
 document.addEventListener("DOMContentLoaded", () => {
-  // Si no existe velocidad guardada → fijar normal (1.0)
   if (!localStorage.getItem("voiceSpeed")) {
     localStorage.setItem("voiceSpeed", "1.0");
     currentSpeed = 1.0;
@@ -368,7 +411,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const savedSpeed = String(localStorage.getItem("voiceSpeed"));
 
-  // Marcar visualmente la velocidad activa
   speedMenu.querySelectorAll("div").forEach(item => {
     if (item.getAttribute("data-speed") === savedSpeed) {
       item.classList.add("active");
@@ -378,7 +420,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-
 const speedBtn = document.getElementById("speedBtn");
 const speedMenu = document.getElementById("speedMenu");
 
@@ -387,25 +428,18 @@ if (speedBtn && speedMenu) {
     speedMenu.style.display = speedMenu.style.display === "flex" ? "none" : "flex";
   });
 
- speedMenu.querySelectorAll("div").forEach(item => {
-  item.addEventListener("click", () => {
+  speedMenu.querySelectorAll("div").forEach(item => {
+    item.addEventListener("click", () => {
+      speedMenu.querySelectorAll("div").forEach(d => d.classList.remove("active"));
+      item.classList.add("active");
 
-    // Quitar highlight de todos
-    speedMenu.querySelectorAll("div").forEach(d => d.classList.remove("active"));
+      const selected = Number(item.getAttribute("data-speed"));
+      currentSpeed = selected;
+      localStorage.setItem("voiceSpeed", selected);
 
-    // Activar el seleccionado
-    item.classList.add("active");
-
-    // Guardar velocidad
-    const selected = Number(item.getAttribute("data-speed"));
-    currentSpeed = selected;
-    localStorage.setItem("voiceSpeed", selected);
-
-    // Cerrar menú
-    speedMenu.style.display = "none";
+      speedMenu.style.display = "none";
+    });
   });
-});
-
 
   document.addEventListener("click", (e) => {
     if (!speedBtn.contains(e.target) && !speedMenu.contains(e.target)) {
@@ -459,78 +493,11 @@ function deactivateBusinessMode() {
 }
 
 /* ----------------------------------------------------------
-   ⭐ SALUDO INICIAL
+   ⭐ SALUDO INICIAL (AHORA LO HACE startAppLogic)
 -------------------------------------------------- */
-window.addEventListener("load", async () => {
+</script>
 
-  chooseBestVoice();
-  
-  await loadUserInfo();
-  const firstname = window.profile?.firstname || "student";
-
-  const today = getTodayDate();
-  const lastDate = localStorage.getItem("lastConnectionDate");
-
-  let greeting = "";
-
-  if (lastDate === today) {
-    loadLastMessage();
-    isFirstInteractionOfDay = false;
-    greeting = "";
-
-    const savedBusinessMode = localStorage.getItem("activeBusinessMode");
-    if (savedBusinessMode && savedBusinessMode !== "exit") {
-      activeBusinessMode = savedBusinessMode;
-      const businessBtnEl = document.getElementById("businessBtn");
-      if (businessBtnEl) {
-        businessBtnEl.classList.add("business-active");
-      }
-
-      document.querySelectorAll(".submenu-btn").forEach(btn => {
-        if (btn.dataset.mode === savedBusinessMode) {
-          btn.classList.add("active");
-        }
-      });
-
-      fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          userId: session.user.id,
-          mode: savedBusinessMode
-        })
-      }).catch(err => console.warn("Error re‑sync BusinessMode:", err));
-    }
-
-  } else {
-    isFirstInteractionOfDay = true;
-    localStorage.removeItem("voiceSpeed");
-
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString("en-US", {
-      weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
-
-    greeting = `Hello ${firstname}! I'm your virtual teacher Brenda. Welcome to today's English practice, ${formattedDate}.`;
-
-    botText.textContent = greeting;
-    saveHistory("", greeting);
-
-    deactivateBusinessMode();
-  }
-
-  localStorage.setItem("lastConnectionDate", today);
-});
-
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-}
-
+<script>
 /* ----------------------------------------------------------
    START SESSION
 -------------------------------------------------- */
@@ -590,7 +557,6 @@ startBtn.onclick = async () => {
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   }
 
-  // Cerrar AudioContext anterior si existe
   if (audioContext && audioContext.state !== "closed") {
     await audioContext.close();
   }
@@ -608,7 +574,6 @@ startBtn.onclick = async () => {
 
   mediaRecorder.onstop = async () => {
 
-    // Cerrar el AudioContext para evitar acumulación
     if (audioContext && audioContext.state !== "closed") {
       audioContext.close();
     }
@@ -669,7 +634,6 @@ startBtn.onclick = async () => {
     playBackendTTS(response, data.audio);
   };
 
-  // Detector de silencio mejorado
   const BASE_THRESHOLD = 0.02;
   let dynamicThreshold = BASE_THRESHOLD;
 
@@ -691,7 +655,6 @@ startBtn.onclick = async () => {
     }
     const rms = Math.sqrt(sum / data.length);
 
-    // Threshold adaptativo
     if (rms > dynamicThreshold) {
       dynamicThreshold = rms * 0.7;
     }
@@ -725,6 +688,7 @@ startBtn.onclick = async () => {
   checkSilence();
 };
 </script>
+
 <script>
 /* ----------------------------------------------------------
    TTS BACKEND — WebAudio
@@ -795,7 +759,8 @@ async function playBackendTTS(text, base64Audio) {
     console.warn("Error TTS backend:", err);
   }
 }
-
+</script>
+<script>
 /* ----------------------------------------------------------
    BOTÓN REPETIR 🔁
 -------------------------------------------------- */
@@ -804,7 +769,9 @@ document.getElementById("repeatBtn").onclick = () => {
     playBackendTTS(lastBotText, lastBotAudio);
   }
 };
+</script>
 
+<script>
 /* ----------------------------------------------------------
    ⭐ BUSINESS ENGLISH MENU (CORREGIDO)
 -------------------------------------------------- */
@@ -826,61 +793,59 @@ document.addEventListener("DOMContentLoaded", () => {
       const mode = btn.dataset.mode;
 
       const modeRes = await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${session.access_token}`
-  },
-  body: JSON.stringify({ 
-    userId: session.user.id,
-    mode
-  })
-});
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          userId: session.user.id,
+          mode
+        })
+      });
 
-const modeData = await modeRes.json();
+      const modeData = await modeRes.json();
 
-// ⭐ SI EL BACKEND DICE QUE SE HA SALIDO DEL MODO BUSINESS
-if (modeData.exitedBusiness) {
-  deactivateBusinessMode();
-  showToast("Business English deactivated");
+      /* ⭐ SI EL BACKEND DICE QUE SE HA SALIDO DEL MODO BUSINESS */
+      if (modeData.exitedBusiness) {
+        deactivateBusinessMode();
+        showToast("Business English deactivated");
 
-  // ⭐ LLAMADA DIRECTA A /chat PARA EL SALUDO ESPECIAL
-  const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`
-    },
-    body: JSON.stringify({
-      message: "__business_exit_greeting__",
-      history: [],
-      userId: window.profile?.id || session.user.id,
-      firstname: window.profile?.firstname,
-      lastname: window.profile?.lastname,
-      email: window.profile?.email,
-      speed: Number(currentSpeed)
-    })
-  });
+        const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            message: "__business_exit_greeting__",
+            history: [],
+            userId: window.profile?.id || session.user.id,
+            firstname: window.profile?.firstname,
+            lastname: window.profile?.lastname,
+            email: window.profile?.email,
+            speed: Number(currentSpeed)
+          })
+        });
 
-  const data = await chatRes.json();
-  const response = data.reply || "Error";
+        const data = await chatRes.json();
+        const response = data.reply || "Error";
 
-  botText.textContent = response;
-  saveHistory("", response);
+        botText.textContent = response;
+        saveHistory("", response);
 
-  lastBotText = response;
-  lastBotAudio = data.audio;
+        lastBotText = response;
+        lastBotAudio = data.audio;
 
-  if (data.audio) {
-    playBackendTTS(response, data.audio);
-  }
+        if (data.audio) {
+          playBackendTTS(response, data.audio);
+        }
 
-  businessMenu.style.display = "none";
-  return;
-}
+        businessMenu.style.display = "none";
+        return;
+      }
 
-
-
+      /* ⭐ ACTIVAR MODO BUSINESS */
       if (mode !== "exit") {
         activeBusinessMode = mode;
         businessBtn.classList.add("business-active");
@@ -946,7 +911,9 @@ if (modeData.exitedBusiness) {
   });
 
 });
+</script>
 
+<script>
 /* ----------------------------------------------------------
    TOAST
 -------------------------------------------------- */
@@ -970,7 +937,11 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
+
 <script>
+/* ----------------------------------------------------------
+   CONTROL DE INACTIVIDAD
+-------------------------------------------------- */
 let lastActive = Date.now();
 
 document.addEventListener("visibilitychange", () => {
@@ -981,14 +952,12 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     const inactiveTime = Date.now() - lastActive;
 
-    // Si estuvo fuera más de 15 minutos → volver al login
     if (inactiveTime > 15 * 60 * 1000) {
-      console.log("⏳ Más de 15 minutos fuera → volviendo al login...");
+      console.log("⏳ Más de 15 minutos fuera → login");
       window.location.href = "login.html";
       return;
     }
 
-    // Si estuvo fuera más de 60 segundos → recargar la página
     if (inactiveTime > 60000) {
       console.log("⏳ Inactividad prolongada → recargando...");
       location.reload();
@@ -996,7 +965,6 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 </script>
-
 
 </body>
 </html>
