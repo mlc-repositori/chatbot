@@ -585,6 +585,7 @@ startSessionBtn.onclick = async () => {
    BOTÓN HABLAR
 -------------------------------------------------- */
 startBtn.onclick = async () => {
+  console.log("🎧 audioContext state al iniciar grabación:", audioContext?.state);
 
   if (!mediaStream) {
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -629,10 +630,13 @@ startBtn.onclick = async () => {
 
     const sttData = await sttRes.json();
     const transcript = sttData.text || "";
+    console.log("🎤 STT transcript:", transcript);
+
     userText.textContent = transcript;
 
     const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
     const last3 = fullHistory.slice(-3);
+    console.log("📨 Enviando mensaje al backend:", transcript);
 
     const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
       method: "POST",
@@ -652,6 +656,8 @@ startBtn.onclick = async () => {
     });
 
     const data = await chatRes.json();
+    console.log("🤖 Respuesta del backend:", data);
+
     const response = data.reply || "Error";
     botText.textContent = response;
 
