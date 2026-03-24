@@ -530,51 +530,7 @@ function formatTime(seconds) {
   const s = Math.floor(seconds % 60);
   return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
 }
-// --- KIT DE DIAGNÓSTICO GLOBAL ---
-window.debugSend = (text) => {
-  console.log("🟦 sendMessage() CALLED", { text, time: Date.now() });
-};
 
-window.debugFetch = () => {
-  const oldFetch = window.fetch;
-  window.fetch = async (...args) => {
-    if (args[0].includes("/chat")) {
-      console.log("🟦 FETCH /chat → SENDING", { args, time: Date.now() });
-    }
-
-    const res = await oldFetch(...args).catch(err => {
-      console.log("🟥 FETCH ERROR", err);
-      throw err;
-    });
-
-    if (args[0].includes("/chat")) {
-      console.log("🟩 FETCH /chat → RESPONSE", res);
-      try {
-        const json = await res.clone().json();
-        console.log("🟩 FETCH /chat → JSON", json);
-      } catch (e) {
-        console.log("🟥 ERROR PARSE JSON", e);
-      }
-    }
-
-    return res;
-  };
-};
-window.debugFetch();
-
-setInterval(() => {
-  console.log("🎧 AudioContext state:", window.audioContext?.state);
-}, 15000);
-
-document.addEventListener("visibilitychange", () => {
-  console.log("👁 VISIBILITY:", document.visibilityState);
-});
-
-setInterval(() => {
-  console.log("⏱ HEARTBEAT", Date.now());
-}, 5000);
-
-  
 /* ----------------------------------------------------------
    START SESSION
 -------------------------------------------------- */
@@ -662,7 +618,6 @@ startBtn.onclick = async () => {
     const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
     const formData = new FormData();
     formData.append("audio", audioBlob, "audio.webm");
-     window.debugSend(transcript);
 
     const sttRes = await fetch("https://chatbot-xzhi.onrender.com/stt-deepgram", {
       method: "POST",
@@ -674,7 +629,6 @@ startBtn.onclick = async () => {
 
     const sttData = await sttRes.json();
     const transcript = sttData.text || "";
-    console.log("🎤 STT RESULT:", transcript);
     userText.textContent = transcript;
 
     const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
@@ -698,8 +652,6 @@ startBtn.onclick = async () => {
     });
 
     const data = await chatRes.json();
-    console.log("🤖 CHAT RAW RESPONSE:", data);
-
     const response = data.reply || "Error";
     botText.textContent = response;
 
