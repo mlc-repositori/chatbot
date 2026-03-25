@@ -677,9 +677,9 @@ startBtn.onclick = async () => {
           message: transcript,
           history: last3,
           userId: window.profile?.id || session.user.id,
-          firstname: window.profile.firstname,
-          lastname: window.profile.lastname,
-          email: window.profile.email,
+          firstname: window.profile.firstname || "",
+          lastname: window.profile.lastname || "",
+          email: window.profile.email || "",
           speed: Number(currentSpeed)
         })
       }, 15000);
