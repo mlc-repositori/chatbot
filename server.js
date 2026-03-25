@@ -665,6 +665,15 @@ if (!activeMode && Array.isArray(history)) {
 }
 
 console.log("🧠 systemPrompt FINAL:", systemPrompt);
+// ============================================================
+// ⭐ LOG 1 — Antes de llamar al modelo
+// ============================================================  
+console.log("🤖 [CHAT] Generando respuesta del modelo:", {
+  message,
+  sessionKey,
+  phase: sessions[sessionKey]?.phase,
+  activeMode
+});
 
 
   const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -686,13 +695,28 @@ console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
   const data = await openaiRes.json();
   const reply = data.choices?.[0]?.message?.content || "Error";
-
+ // ============================================================
+// ⭐ LOG 2 — Después de recibir la respuesta del modelo
+// ============================================================
+console.log("🧠 [CHAT] Respuesta del modelo:", {
+  replyPreview: reply.slice(0, 80),
+  fullReplyLength: reply.length,
+  modelError: data.error
+});
+  
  if (!activeMode) {
   advancePhase(sessionKey);
 
 }
 
   const speed = req.body.speed || 0.8;
+  // ============================================================
+// ⭐ LOG 3 — Antes de llamar al TTS
+// ============================================================
+console.log("🎤 [CHAT] Generando audio TTS:", {
+  replyPreview: reply.slice(0, 60),
+  speed
+});
   const ttsRes = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: {
@@ -710,7 +734,14 @@ console.log("🧠 systemPrompt FINAL:", systemPrompt);
 
   const arrayBuffer = await ttsRes.arrayBuffer();
   const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
-
+  // ============================================================
+// ⭐ LOG 4 — Antes de enviar la respuesta al frontend
+// ============================================================
+console.log("📤 [CHAT] Enviando respuesta al frontend:", {
+  replyPreview: reply.slice(0, 60),
+  audioLength: audioBase64.length,
+  timeSpentToday: used
+});
   res.json({
     reply,
     audio: audioBase64,
