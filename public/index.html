@@ -213,7 +213,16 @@
 
 <body>
 <div id="toast"></div>
-
+<!-- 🔧 PANEL DE DEBUG EN PANTALLA -->
+<script>
+function logToScreen(msg) {
+  const el = document.getElementById("debugLog");
+  if (!el) return;
+  const time = new Date().toISOString().split("T")[1].split(".")[0];
+  el.textContent += `[${time}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+</script>
 <!-- 🔐 SESIÓN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -636,7 +645,7 @@ startBtn.onclick = async () => {
 
     const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
     const last3 = fullHistory.slice(-3);
-    console.log("📨 Enviando mensaje al backend:", transcript);
+    logToScreen("📨 Enviando mensaje al backend:" + transcript);
 
     const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
       method: "POST",
@@ -656,7 +665,7 @@ startBtn.onclick = async () => {
     });
 
     const data = await chatRes.json();
-    console.log("🤖 Respuesta del backend:", data);
+   logToScreen("🤖 Respuesta del backend:" + data);
 
     const response = data.reply || "Error";
     botText.textContent = response;
@@ -746,7 +755,7 @@ async function playBackendTTS(text, base64Audio) {
       try {
         await ttsContext.resume();
       } catch (e) {
-        console.log("Error reanudando ttsContext (fase decode):", e);
+        logToScreen("Error reanudando ttsContext (fase decode):" + e);
       }
     }
 
@@ -976,6 +985,21 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
+<div id="debugLog" style="
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 40%;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.85);
+  color: #0f0;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 10px;
+  z-index: 99999;
+  white-space: pre-wrap;
+"></div>
 
 </body>
 </html>
