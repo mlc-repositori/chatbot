@@ -107,19 +107,20 @@
     .secondary-btn:hover {
       background-color: #444;
     }
+
 #businessMenu {
-  display: none;          /* ya lo controlamos por JS */
+  display: none;
   margin-top: 10px;
   width: 100%;
-  text-align: center;     /* centra el contenido dentro */
+  text-align: center;
 }
 
-    #businessMenu button.submenu-btn {
+#businessMenu button.submenu-btn {
   display: block;
-  width: 80%;             /* más estrechos, quedan centrados */
-  margin: 6px auto;       /* centrado horizontal */
-  padding: 8px 10px;      /* un pelín más compactos */
-  font-size: 14px;        /* letra un poco más pequeña */
+  width: 80%;
+  margin: 6px auto;
+  padding: 8px 10px;
+  font-size: 14px;
   background-color: #222;
   color: #fff;
   border: none;
@@ -127,79 +128,79 @@
   cursor: pointer;
 }
 
-    #businessMenu button.submenu-btn:hover {
-      opacity: 0.85;
-    }
+#businessMenu button.submenu-btn:hover {
+  opacity: 0.85;
+}
 
-    #businessMenu button.submenu-btn.active {
-      background: linear-gradient(135deg, #ffcc33, #ff9900);
-      color: #000 !important;
-      box-shadow: 0 0 12px rgba(255, 170, 0, 0.9);
-      font-weight: bold;
-      transform: scale(1.05);
-    }
+#businessMenu button.submenu-btn.active {
+  background: linear-gradient(135deg, #ffcc33, #ff9900);
+  color: #000 !important;
+  box-shadow: 0 0 12px rgba(255, 170, 0, 0.9);
+  font-weight: bold;
+  transform: scale(1.05);
+}
 
-    #toast {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.85);
-      color: #fff;
-      padding: 12px 18px;
-      border-radius: 8px;
-      font-size: 16px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease;
-      z-index: 9999;
-    }
-    #toast.show {
-      opacity: 1;
-    }
+#toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  z-index: 9999;
+}
+#toast.show {
+  opacity: 1;
+}
 
-    .business-active {
-      background: linear-gradient(135deg, #ffcc33, #ff9900);
-      color: #000 !important;
-      box-shadow: 0 0 12px rgba(255, 170, 0, 0.9);
-      font-weight: bold;
-      transform: scale(1.05);
-      transition: all 0.2s ease;
-    }
+.business-active {
+  background: linear-gradient(135deg, #ffcc33, #ff9900);
+  color: #000 !important;
+  box-shadow: 0 0 12px rgba(255, 170, 0, 0.9);
+  font-weight: bold;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
 
-    /* ⭐ SELECTOR DE VELOCIDAD */
-    #speedBtn {
-      background: none;
-      border: none;
-      font-size: 28px;
-      cursor: pointer;
-    }
+/* ⭐ SELECTOR DE VELOCIDAD */
+#speedBtn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+}
 
-    #speedMenu {
-      position: absolute;
-      top: 60px;
-      right: 0;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 8px;
-      border-radius: 6px;
-      display: none;
-      flex-direction: column;
-      gap: 6px;
-      z-index: 9999;
-    }
+#speedMenu {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 8px;
+  border-radius: 6px;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 9999;
+}
 
-    #speedMenu div {
-      padding: 6px 10px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 18px;
-    }
+#speedMenu div {
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 18px;
+}
 
-    #speedMenu div:hover {
-      background: #eee;
-    }
-    /* ⭐ Highlight del botón de velocidad activo */
+#speedMenu div:hover {
+  background: #eee;
+}
+
 #speedMenu div.active {
   background: linear-gradient(135deg, #ffcc33, #ff9900);
   color: #000 !important;
@@ -207,12 +208,12 @@
   box-shadow: 0 0 10px rgba(255, 170, 0, 0.8);
   transform: scale(1.05);
 }
-
   </style>
 </head>
 
 <body>
 <div id="toast"></div>
+
 <!-- 🔧 PANEL DE DEBUG EN PANTALLA -->
 <script>
 function logToScreen(msg) {
@@ -223,6 +224,7 @@ function logToScreen(msg) {
   el.scrollTop = el.scrollHeight;
 }
 </script>
+
 <!-- 🔐 SESIÓN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -258,16 +260,16 @@ window.profile = null;
       <button id="repeatBtn">🔁</button>
 
       <button id="businessBtn" class="secondary-btn">💼 Business</button>
-       <div id="businessMenu" style="display:none; margin-top:8px;">
+      <div id="businessMenu" style="display:none; margin-top:8px;">
         <button class="submenu-btn" data-mode="negotiation">🤝 Negotiation</button>
-      <button class="submenu-btn" data-mode="job_interview">🧑‍💼 Job Interview</button>
-      <button class="submenu-btn" data-mode="client_meeting">📊 Client Meeting</button>
-      <button class="submenu-btn" data-mode="presentation">🎤 Presentation</button>
-      <button class="submenu-btn" data-mode="conflict_resolution">⚠️ Conflict Resolution</button>
-      <button class="submenu-btn" data-mode="sales_call">📞 Sales Call</button>
-      <button class="submenu-btn" data-mode="exit" style="background-color:#b30000;">
-        ❌ Exit Business Mode
-      </button>
+        <button class="submenu-btn" data-mode="job_interview">🧑‍💼 Job Interview</button>
+        <button class="submenu-btn" data-mode="client_meeting">📊 Client Meeting</button>
+        <button class="submenu-btn" data-mode="presentation">🎤 Presentation</button>
+        <button class="submenu-btn" data-mode="conflict_resolution">⚠️ Conflict Resolution</button>
+        <button class="submenu-btn" data-mode="sales_call">📞 Sales Call</button>
+        <button class="submenu-btn" data-mode="exit" style="background-color:#b30000;">
+          ❌ Exit Business Mode
+        </button>
       </div>
 
       <!-- ⭐ BOTÓN DE VELOCIDAD -->
@@ -291,7 +293,6 @@ window.profile = null;
     </p>
   </div>
 </div>
-
 <script>
 console.log("JS CARGADO");
 let wakeLock = null;
@@ -363,13 +364,13 @@ function loadLastMessage() {
   }
 }
 </script>
+
 <script>
 /* ----------------------------------------------------------
    ⭐ SELECTOR DE VELOCIDAD
 ----------------------------------------------------------- */
 let currentSpeed = Number(localStorage.getItem("voiceSpeed") || 1.0);
 document.addEventListener("DOMContentLoaded", () => {
-  // Si no existe velocidad guardada → fijar normal (1.0)
   if (!localStorage.getItem("voiceSpeed")) {
     localStorage.setItem("voiceSpeed", "1.0");
     currentSpeed = 1.0;
@@ -377,7 +378,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const savedSpeed = String(localStorage.getItem("voiceSpeed"));
 
-  // Marcar visualmente la velocidad activa
   speedMenu.querySelectorAll("div").forEach(item => {
     if (item.getAttribute("data-speed") === savedSpeed) {
       item.classList.add("active");
@@ -387,7 +387,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-
 const speedBtn = document.getElementById("speedBtn");
 const speedMenu = document.getElementById("speedMenu");
 
@@ -396,25 +395,18 @@ if (speedBtn && speedMenu) {
     speedMenu.style.display = speedMenu.style.display === "flex" ? "none" : "flex";
   });
 
- speedMenu.querySelectorAll("div").forEach(item => {
-  item.addEventListener("click", () => {
+  speedMenu.querySelectorAll("div").forEach(item => {
+    item.addEventListener("click", () => {
+      speedMenu.querySelectorAll("div").forEach(d => d.classList.remove("active"));
+      item.classList.add("active");
 
-    // Quitar highlight de todos
-    speedMenu.querySelectorAll("div").forEach(d => d.classList.remove("active"));
+      const selected = Number(item.getAttribute("data-speed"));
+      currentSpeed = selected;
+      localStorage.setItem("voiceSpeed", selected);
 
-    // Activar el seleccionado
-    item.classList.add("active");
-
-    // Guardar velocidad
-    const selected = Number(item.getAttribute("data-speed"));
-    currentSpeed = selected;
-    localStorage.setItem("voiceSpeed", selected);
-
-    // Cerrar menú
-    speedMenu.style.display = "none";
+      speedMenu.style.display = "none";
+    });
   });
-});
-
 
   document.addEventListener("click", (e) => {
     if (!speedBtn.contains(e.target) && !speedMenu.contains(e.target)) {
@@ -539,7 +531,8 @@ function formatTime(seconds) {
   const s = Math.floor(seconds % 60);
   return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
 }
-
+</script>
+<script>
 /* ----------------------------------------------------------
    START SESSION
 -------------------------------------------------- */
@@ -591,6 +584,29 @@ startSessionBtn.onclick = async () => {
 };
 
 /* ----------------------------------------------------------
+   ⭐ FUNCIÓN fetchWithTimeout (NUEVA)
+-------------------------------------------------- */
+async function fetchWithTimeout(url, options = {}, timeout = 15000) {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => {
+      controller.abort();
+      reject(new Error("timeout"));
+    }, timeout);
+
+    fetch(url, { ...options, signal: controller.signal })
+      .then(res => {
+        clearTimeout(id);
+        resolve(res);
+      })
+      .catch(err => {
+        clearTimeout(id);
+        reject(err);
+      });
+  });
+}
+
+/* ----------------------------------------------------------
    BOTÓN HABLAR
 -------------------------------------------------- */
 startBtn.onclick = async () => {
@@ -600,7 +616,6 @@ startBtn.onclick = async () => {
     mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   }
 
-  // Cerrar AudioContext anterior si existe
   if (audioContext && audioContext.state !== "closed") {
     await audioContext.close();
   }
@@ -618,7 +633,6 @@ startBtn.onclick = async () => {
 
   mediaRecorder.onstop = async () => {
 
-    // Cerrar el AudioContext para evitar acumulación
     if (audioContext && audioContext.state !== "closed") {
       audioContext.close();
     }
@@ -645,27 +659,65 @@ startBtn.onclick = async () => {
 
     const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
     const last3 = fullHistory.slice(-3);
-    logToScreen("📨 Enviando mensaje al backend:" + transcript);
 
-    const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        message: transcript,
-        history: last3,
-        userId: window.profile?.id || session.user.id,
-        firstname: window.profile.firstname,
-        lastname: window.profile.lastname,
-        email: window.profile.email,
-        speed: Number(currentSpeed)
-      })
-    });
+    logToScreen("📨 Enviando mensaje al backend: " + transcript);
+
+    /* ----------------------------------------------------------
+       ⭐ FETCH PRINCIPAL A /chat — PARCHEADO CON TIMEOUT + RETRY
+    ---------------------------------------------------------- */
+    let chatRes;
+    try {
+      chatRes = await fetchWithTimeout("https://chatbot-xzhi.onrender.com/chat", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          message: transcript,
+          history: last3,
+          userId: window.profile?.id || session.user.id,
+          firstname: window.profile.firstname,
+          lastname: window.profile.lastname,
+          email: window.profile.email,
+          speed: Number(currentSpeed)
+        })
+      }, 15000);
+
+    } catch (err) {
+      logToScreen("⚠️ Timeout o error en intento 1: " + err);
+
+      logToScreen("🔁 Reintentando (intent 2)…");
+
+      try {
+        chatRes = await fetchWithTimeout("https://chatbot-xzhi.onrender.com/chat", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            message: transcript,
+            history: last3,
+            userId: window.profile?.id || session.user.id,
+            firstname: window.profile.firstname,
+            lastname: window.profile.lastname,
+            email: window.profile.email,
+            speed: Number(currentSpeed)
+          })
+        }, 15000);
+
+      } catch (err2) {
+        logToScreen("❌ Falló también el intento 2: " + err2);
+        botText.textContent = "Connection error. Please try again.";
+        return;
+      }
+    }
+
+    logToScreen("📥 Respuesta recibida del backend (raw)");
 
     const data = await chatRes.json();
-   logToScreen("🤖 Respuesta del backend:" + data);
+    logToScreen("🤖 Respuesta del backend: " + JSON.stringify(data).slice(0,80));
 
     const response = data.reply || "Error";
     botText.textContent = response;
@@ -684,7 +736,9 @@ startBtn.onclick = async () => {
     playBackendTTS(response, data.audio);
   };
 
-  // Detector de silencio mejorado
+  /* ----------------------------------------------------------
+     Detector de silencio
+  ---------------------------------------------------------- */
   const BASE_THRESHOLD = 0.02;
   let dynamicThreshold = BASE_THRESHOLD;
 
@@ -706,7 +760,6 @@ startBtn.onclick = async () => {
     }
     const rms = Math.sqrt(sum / data.length);
 
-    // Threshold adaptativo
     if (rms > dynamicThreshold) {
       dynamicThreshold = rms * 0.7;
     }
@@ -740,6 +793,7 @@ startBtn.onclick = async () => {
   checkSilence();
 };
 </script>
+
 <script>
 /* ----------------------------------------------------------
    TTS BACKEND — WebAudio
@@ -810,7 +864,8 @@ async function playBackendTTS(text, base64Audio) {
     console.warn("Error TTS backend:", err);
   }
 }
-
+</script>
+<script>
 /* ----------------------------------------------------------
    BOTÓN REPETIR 🔁
 -------------------------------------------------- */
@@ -841,61 +896,72 @@ document.addEventListener("DOMContentLoaded", () => {
       const mode = btn.dataset.mode;
 
       const modeRes = await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${session.access_token}`
-  },
-  body: JSON.stringify({ 
-    userId: session.user.id,
-    mode
-  })
-});
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          userId: session.user.id,
+          mode
+        })
+      });
 
-const modeData = await modeRes.json();
+      const modeData = await modeRes.json();
 
-// ⭐ SI EL BACKEND DICE QUE SE HA SALIDO DEL MODO BUSINESS
-if (modeData.exitedBusiness) {
-  deactivateBusinessMode();
-  showToast("Business English deactivated");
+      /* ----------------------------------------------------------
+         ⭐ SI EL BACKEND DICE QUE SE HA SALIDO DEL MODO BUSINESS
+      ---------------------------------------------------------- */
+      if (modeData.exitedBusiness) {
+        deactivateBusinessMode();
+        showToast("Business English deactivated");
 
-  // ⭐ LLAMADA DIRECTA A /chat PARA EL SALUDO ESPECIAL
-  const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`
-    },
-    body: JSON.stringify({
-      message: "__business_exit_greeting__",
-      history: [],
-      userId: window.profile?.id || session.user.id,
-      firstname: window.profile?.firstname,
-      lastname: window.profile?.lastname,
-      email: window.profile?.email,
-      speed: Number(currentSpeed)
-    })
-  });
+        /* ----------------------------------------------------------
+           ⭐ FETCH /chat PARCHEADO (exit greeting)
+        ---------------------------------------------------------- */
+        let chatRes;
+        try {
+          chatRes = await fetchWithTimeout("https://chatbot-xzhi.onrender.com/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              message: "__business_exit_greeting__",
+              history: [],
+              userId: window.profile?.id || session.user.id,
+              firstname: window.profile?.firstname,
+              lastname: window.profile?.lastname,
+              email: window.profile?.email,
+              speed: Number(currentSpeed)
+            })
+          }, 15000);
+        } catch (err) {
+          logToScreen("❌ Error en /chat (exit business): " + err);
+          return;
+        }
 
-  const data = await chatRes.json();
-  const response = data.reply || "Error";
+        const data = await chatRes.json();
+        const response = data.reply || "Error";
 
-  botText.textContent = response;
-  saveHistory("", response);
+        botText.textContent = response;
+        saveHistory("", response);
 
-  lastBotText = response;
-  lastBotAudio = data.audio;
+        lastBotText = response;
+        lastBotAudio = data.audio;
 
-  if (data.audio) {
-    playBackendTTS(response, data.audio);
-  }
+        if (data.audio) {
+          playBackendTTS(response, data.audio);
+        }
 
-  businessMenu.style.display = "none";
-  return;
-}
+        businessMenu.style.display = "none";
+        return;
+      }
 
-
-
+      /* ----------------------------------------------------------
+         ⭐ ACTIVAR UN MODO BUSINESS
+      ---------------------------------------------------------- */
       if (mode !== "exit") {
         activeBusinessMode = mode;
         businessBtn.classList.add("business-active");
@@ -913,22 +979,31 @@ if (modeData.exitedBusiness) {
         userText.textContent = "";
         botText.textContent = "";
 
-        const chatRes = await fetch("https://chatbot-xzhi.onrender.com/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({
-            message: "__start_interview__",
-            history: [],
-            userId: window.profile?.id || session.user.id,
-            firstname: window.profile?.firstname,
-            lastname: window.profile?.lastname,
-            email: window.profile?.email,
-            speed: Number(currentSpeed)
-          })
-        });
+        /* ----------------------------------------------------------
+           ⭐ FETCH /chat PARCHEADO (start interview)
+        ---------------------------------------------------------- */
+        let chatRes;
+        try {
+          chatRes = await fetchWithTimeout("https://chatbot-xzhi.onrender.com/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              message: "__start_interview__",
+              history: [],
+              userId: window.profile?.id || session.user.id,
+              firstname: window.profile?.firstname,
+              lastname: window.profile?.lastname,
+              email: window.profile?.email,
+              speed: Number(currentSpeed)
+            })
+          }, 15000);
+        } catch (err) {
+          logToScreen("❌ Error en /chat (start business mode): " + err);
+          return;
+        }
 
         const data = await chatRes.json();
         const response = data.reply || "Error";
@@ -985,6 +1060,7 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 </script>
+
 <div id="debugLog" style="
   position: fixed;
   bottom: 0;
@@ -1003,3 +1079,4 @@ if ("serviceWorker" in navigator) {
 
 </body>
 </html>
+
