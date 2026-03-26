@@ -436,6 +436,8 @@ async function loadUserInfo() {
     console.log("Perfil recibido desde backend:", data);
 
     window.profile = data;
+    localStorage.setItem("cachedProfile", JSON.stringify(data));
+
     return data;
 
   } catch (err) {
@@ -662,6 +664,33 @@ startBtn.onclick = async () => {
     const last3 = fullHistory.slice(-3);
 
     logToScreen("📨 Enviando mensaje al backend: " + transcript);
+    logToScreen("🔍 window.profile: " + JSON.stringify(window.profile));
+
+let safeProfile = window.profile;
+
+// Intentar restaurar desde localStorage si Android lo borró
+if (!safeProfile) {
+  const stored = localStorage.getItem("cachedProfile");
+  if (stored) {
+    safeProfile = JSON.parse(stored);
+    window.profile = safeProfile;
+    logToScreen("♻️ Perfil restaurado desde localStorage");
+  }
+}
+
+// Si aún no hay perfil → recargar desde backend
+if (!safeProfile) {
+  logToScreen("⚠️ Perfil NULL → recargando desde backend...");
+  try {
+    await loadUserInfo();
+    safeProfile = window.profile;
+    logToScreen("✅ Perfil recargado: " + JSON.stringify(safeProfile));
+  } catch (e) {
+    logToScreen("❌ Error recargando perfil: " + e);
+    safeProfile = {}; // evitar crash
+  }
+}
+
 
     /* ----------------------------------------------------------
        ⭐ FETCH PRINCIPAL A /chat — PARCHEADO CON TIMEOUT + RETRY
@@ -677,10 +706,11 @@ startBtn.onclick = async () => {
         body: JSON.stringify({
           message: transcript,
           history: last3,
-          userId: window.profile?.id || session.user.id,
-          firstname: window.profile.firstname || "",
-          lastname: window.profile.lastname || "",
-          email: window.profile.email || "",
+          firstname: safeProfile.firstname || "",
+          lastname: safeProfile.lastname || "",
+          email: safeProfile.email || "",
+          userId: safeProfile.id || session.user.id,
+
           speed: Number(currentSpeed)
         })
       }, 15000);
