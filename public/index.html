@@ -632,7 +632,7 @@ startBtn.onclick = async () => {
   audioChunks = [];
 
   mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-  logToScreen("🔍 window.profile actual: " + JSON.stringify(window.profile));
+  // logToScreen("🔍 window.profile actual: " + JSON.stringify(window.profile));
 
   mediaRecorder.onstop = async () => {
 
