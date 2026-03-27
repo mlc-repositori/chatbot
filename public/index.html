@@ -663,8 +663,8 @@ startBtn.onclick = async () => {
     const fullHistory = JSON.parse(localStorage.getItem(getHistoryKey()) || "[]");
     const last3 = fullHistory.slice(-3);
 
-    logToScreen("📨 Enviando mensaje al backend: " + transcript);
-    logToScreen("🔍 window.profile: " + JSON.stringify(window.profile));
+    // logToScreen("📨 Enviando mensaje al backend: " + transcript);
+    // logToScreen("🔍 window.profile: " + JSON.stringify(window.profile));
 
 let safeProfile = window.profile;
 
@@ -674,19 +674,19 @@ if (!safeProfile) {
   if (stored) {
     safeProfile = JSON.parse(stored);
     window.profile = safeProfile;
-    logToScreen("♻️ Perfil restaurado desde localStorage");
+    // logToScreen("♻️ Perfil restaurado desde localStorage");
   }
 }
 
 // Si aún no hay perfil → recargar desde backend
 if (!safeProfile) {
-  logToScreen("⚠️ Perfil NULL → recargando desde backend...");
+ // logToScreen("⚠️ Perfil NULL → recargando desde backend...");
   try {
     await loadUserInfo();
     safeProfile = window.profile;
-    logToScreen("✅ Perfil recargado: " + JSON.stringify(safeProfile));
+    // logToScreen("✅ Perfil recargado: " + JSON.stringify(safeProfile));
   } catch (e) {
-    logToScreen("❌ Error recargando perfil: " + e);
+    // logToScreen("❌ Error recargando perfil: " + e);
     safeProfile = {}; // evitar crash
   }
 }
@@ -716,9 +716,9 @@ if (!safeProfile) {
       }, 15000);
 
     } catch (err) {
-      logToScreen("⚠️ Timeout o error en intento 1: " + err);
+      // logToScreen("⚠️ Timeout o error en intento 1: " + err);
 
-      logToScreen("🔁 Reintentando (intent 2)…");
+      // logToScreen("🔁 Reintentando (intent 2)…");
 
       try {
         chatRes = await fetchWithTimeout("https://chatbot-xzhi.onrender.com/chat", {
@@ -739,16 +739,16 @@ if (!safeProfile) {
         }, 15000);
 
       } catch (err2) {
-        logToScreen("❌ Falló también el intento 2: " + err2);
+        // logToScreen("❌ Falló también el intento 2: " + err2);
         botText.textContent = "Connection error. Please try again.";
         return;
       }
     }
 
-    logToScreen("📥 Respuesta recibida del backend (raw)");
+    // logToScreen("📥 Respuesta recibida del backend (raw)");
 
     const data = await chatRes.json();
-    logToScreen("🤖 Respuesta del backend: " + JSON.stringify(data).slice(0,80));
+   // logToScreen("🤖 Respuesta del backend: " + JSON.stringify(data).slice(0,80));
 
     const response = data.reply || "Error";
     botText.textContent = response;
@@ -840,7 +840,7 @@ async function playBackendTTS(text, base64Audio) {
       try {
         await ttsContext.resume();
       } catch (e) {
-        logToScreen("Error reanudando ttsContext (fase decode):" + e);
+        // logToScreen("Error reanudando ttsContext (fase decode):" + e);
       }
     }
 
@@ -969,7 +969,7 @@ document.addEventListener("DOMContentLoaded", () => {
             })
           }, 15000);
         } catch (err) {
-          logToScreen("❌ Error en /chat (exit business): " + err);
+         // logToScreen("❌ Error en /chat (exit business): " + err);
           return;
         }
 
@@ -1032,7 +1032,7 @@ document.addEventListener("DOMContentLoaded", () => {
             })
           }, 15000);
         } catch (err) {
-          logToScreen("❌ Error en /chat (start business mode): " + err);
+         // logToScreen("❌ Error en /chat (start business mode): " + err);
           return;
         }
 
