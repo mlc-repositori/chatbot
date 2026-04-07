@@ -521,6 +521,20 @@ window.addEventListener("load", async () => {
     saveHistory("", greeting);
 
     deactivateBusinessMode();
+    await fetch("https://chatbot-xzhi.onrender.com/setBusinessMode", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${session.access_token}`
+  },
+  body: JSON.stringify({
+    userId: session.user.id,
+    mode: "exit"
+  })
+});
+
+localStorage.removeItem("activeBusinessMode");
+
   }
 
   localStorage.setItem("lastConnectionDate", today);
