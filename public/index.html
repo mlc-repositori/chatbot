@@ -117,17 +117,20 @@
 
 #businessMenu button.submenu-btn {
   display: block;
-  width: 92%;          /* Más ancho en móvil */
-  max-width: 350px;    /* No se hace gigante en tablets */
-  margin: 8px auto;    /* Centrado */
-  padding: 12px 14px;  /* Más cómodo para tocar */
-  font-size: 16px;     /* Más legible */
+  width: 80%;
+  margin: 6px auto;
+  padding: 8px 10px;
+  font-size: 14px;      /* si quieres mantenerlo */
+  white-space: nowrap;  /* ⭐ evita que se parta */
+  overflow: hidden;
+  text-overflow: ellipsis;
   background-color: #222;
   color: #fff;
   border: none;
-  border-radius: 8px;  /* Más moderno */
+  border-radius: 6px;
   cursor: pointer;
 }
+
 
 
 #businessMenu button.submenu-btn:hover {
