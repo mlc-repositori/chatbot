@@ -27,6 +27,8 @@ const sessions = {};
 const SESSION_LIMIT = 300; // 5 minutos
 // ------------------ BUSINESS MODES ------------------ 
 const businessModes = {};
+const lastInteractionDate = {};
+
 function getToday() {
   return new Date().toISOString().split("T")[0];
 }
