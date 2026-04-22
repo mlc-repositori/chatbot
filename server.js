@@ -459,7 +459,19 @@ if (!sessions[sessionKey].userId && effectiveUserId) {
   console.log("🔎 activeMode:", businessModes[userId]);
 
   const today = getToday();
- 
+ // 🆕 Detectar si es un nuevo día
+const lastDate = lastInteractionDate[sessionKey];
+const isNewDay = lastDate && lastDate !== today;
+
+// Actualizar fecha
+lastInteractionDate[sessionKey] = today;
+
+// 🆕 Nuevo día → siempre iniciar sesión nueva
+if (isNewDay) {
+  console.log("🆕 Nuevo día detectado → iniciando sesión nueva");
+  initSession(sessionKey);
+}
+
 
   /* ============================================================
    ⛔ LÍMITE DE TIEMPO — AHORA DINÁMICO DESDE SUPABASE
